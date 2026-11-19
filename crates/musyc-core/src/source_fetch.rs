@@ -4,7 +4,6 @@
 
 use serde_json::Value;
 
-
 /// 取 JSON 里按点路径定位的值。空路径返回根本身。
 pub fn get_path<'v>(root: &'v Value, path: &str) -> Option<&'v Value> {
     let path = path.trim();
@@ -24,10 +23,7 @@ pub fn get_path<'v>(root: &'v Value, path: &str) -> Option<&'v Value> {
 
 /// 把 `a[0].b` 规范化后拆成 `["a", "0", "b"]`。
 fn split_path(path: &str) -> Vec<String> {
-    let normalized = path
-        .replace("][", ".")
-        .replace('[', ".")
-        .replace(']', "");
+    let normalized = path.replace("][", ".").replace('[', ".").replace(']', "");
     normalized
         .split('.')
         .map(|seg| seg.trim().trim_matches('"').trim_matches('\'').to_string())
@@ -83,7 +79,10 @@ mod tests {
 
     #[test]
     fn split_path_supports_brackets() {
-        assert_eq!(split_path("results[0].tracks"), vec!["results", "0", "tracks"]);
+        assert_eq!(
+            split_path("results[0].tracks"),
+            vec!["results", "0", "tracks"]
+        );
         assert_eq!(split_path("items.0.name"), vec!["items", "0", "name"]);
         assert_eq!(split_path(""), Vec::<String>::new());
     }
@@ -91,6 +90,6 @@ mod tests {
     #[test]
     fn get_path_traces_nested_arrays() {
         let v = json!({"results": [{"tracks": [1, 2, 3]}]});
-        assert_eq!(get_path(&v, "results[0].tracks"), Some(&json!([1,2,3])));
+        assert_eq!(get_path(&v, "results[0].tracks"), Some(&json!([1, 2, 3])));
     }
 }

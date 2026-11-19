@@ -26,8 +26,14 @@ pub struct LoadedSource {
 /// 按 kind 拉取源数据并组装 Song 列表；网络错误直接返回给调用方。
 pub async fn load(source: &Source, http: &reqwest::Client) -> Result<Vec<Song>> {
     let songs = match source.kind {
-        Kind::NeteasePlaylist => return Err(Error::Api("netease-playlist 源走 ApiClient 快速通道".into())),
-        Kind::StreetVoiceCat => return Err(Error::Api("streetvoice-cat 源走本机 API 快速通道".into())),
+        Kind::NeteasePlaylist => {
+            return Err(Error::Api(
+                "netease-playlist 源走 ApiClient 快速通道".into(),
+            ));
+        }
+        Kind::StreetVoiceCat => {
+            return Err(Error::Api("streetvoice-cat 源走本机 API 快速通道".into()));
+        }
         Kind::JamendoPlaylist => fetch_jamendo(source, http).await?,
         Kind::FmaCharts => fetch_fma(source, http).await?,
         Kind::GenericJson => fetch_generic_json(source, http).await?,
@@ -139,8 +145,11 @@ async fn build_jamendo(
 ) -> Result<Vec<Song>> {
     let mut out: Vec<Song> = Vec::with_capacity(tracks.len());
     for track in &tracks {
-        let Some(id) = as_string(track.get("id").unwrap_or(&Value::Null)) else { continue };
-        let name = as_string(track.get("name").unwrap_or(&Value::Null)).unwrap_or_else(|| "（无标题）".into());
+        let Some(id) = as_string(track.get("id").unwrap_or(&Value::Null)) else {
+            continue;
+        };
+        let name = as_string(track.get("name").unwrap_or(&Value::Null))
+            .unwrap_or_else(|| "（无标题）".into());
         let artists: Vec<String> = track
             .get("artist_name")
             .and_then(Value::as_str)
@@ -262,7 +271,8 @@ fn parse_fma_items(html: &str) -> Vec<FmaItem> {
             .or_else(|| v.get("imageUrl").and_then(as_string));
         out.push(FmaItem {
             id,
-            title: as_string(v.get("title").unwrap_or(&Value::Null)).unwrap_or_else(|| "未命名".into()),
+            title: as_string(v.get("title").unwrap_or(&Value::Null))
+                .unwrap_or_else(|| "未命名".into()),
             artist_name: as_string(v.get("artistName").unwrap_or(&Value::Null)).unwrap_or_default(),
             album_title: as_string(v.get("albumTitle").unwrap_or(&Value::Null)).unwrap_or_default(),
             file_url: as_string(v.get("fileUrl").unwrap_or(&Value::Null)).unwrap_or_default(),
@@ -291,12 +301,19 @@ fn regex_lite_track_info(html: &str) -> Vec<&str> {
 async fn fetch_generic_json(source: &Source, http: &reqwest::Client) -> Result<Vec<Song>> {
     let json = get_json(http, &source.url, source_generic_headers(source)).await?;
     let array = match get_path(&json, &source.list_path) {
-        Some(v) => as_array(v, &["songs", "result", "results", "data", "tracks", "items"]),
-        None => as_array(&json, &["songs", "result", "results", "data", "tracks", "items"]),
+        Some(v) => as_array(
+            v,
+            &["songs", "result", "results", "data", "tracks", "items"],
+        ),
+        None => as_array(
+            &json,
+            &["songs", "result", "results", "data", "tracks", "items"],
+        ),
     };
     if array.is_empty() && !source.list_path.is_empty() {
         return Err(Error::Api(format!(
-            "generic-json 在 {:?} 处没找到数组", source.list_path
+            "generic-json 在 {:?} 处没找到数组",
+            source.list_path
         )));
     }
     let mut out = Vec::with_capacity(array.len().min(source.limit as usize));
@@ -313,7 +330,10 @@ async fn fetch_generic_json(source: &Source, http: &reqwest::Client) -> Result<V
             .unwrap_or_else(|| "未命名".into());
         let artists = artists_from(item, &source.artists_path);
         let album = pick_string(item, &source.album_path).unwrap_or_default();
-        let duration_ms = to_millis(pick_value(item, &source.duration_path), source.duration_unit);
+        let duration_ms = to_millis(
+            pick_value(item, &source.duration_path),
+            source.duration_unit,
+        );
         let cover_url = pick_string(item, &source.cover_path);
         let play_url = pick_string(item, &source.play_url_path);
         let lyric_url = pick_string(item, &source.lyric_url_path);
@@ -353,7 +373,11 @@ fn pick_string(item: &Value, path: &str) -> Option<String> {
 fn artists_from(item: &Value, path: &str) -> Vec<String> {
     let v = match pick_value(item, path) {
         Some(v) => v,
-        None => match item.get("artists").or_else(|| item.get("artist")).or_else(|| item.get("artist_name")) {
+        None => match item
+            .get("artists")
+            .or_else(|| item.get("artist"))
+            .or_else(|| item.get("artist_name"))
+        {
             Some(v) => v,
             None => return Vec::new(),
         },
@@ -377,11 +401,17 @@ async fn get_json(http: &reqwest::Client, url: &str, headers: &[(&str, &str)]) -
     for (name, value) in headers {
         req = req.header(*name, *value);
     }
-    let resp = req.send().await.map_err(|e| Error::Network(format!("请求 {url} 失败: {e}")))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| Error::Network(format!("请求 {url} 失败: {e}")))?;
     if !resp.status().is_success() {
         return Err(Error::Network(format!("{url} 返回 HTTP {}", resp.status())));
     }
-    let text = resp.text().await.map_err(|e| Error::Network(format!("读取响应失败: {e}")))?;
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| Error::Network(format!("读取响应失败: {e}")))?;
     serde_json::from_str(&text).map_err(|e| Error::Api(format!("响应不是合法 JSON: {e}")))
 }
 
@@ -390,11 +420,16 @@ async fn get_text(http: &reqwest::Client, url: &str, headers: &[(&str, &str)]) -
     for (name, value) in headers {
         req = req.header(*name, *value);
     }
-    let resp = req.send().await.map_err(|e| Error::Network(format!("请求 {url} 失败: {e}")))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| Error::Network(format!("请求 {url} 失败: {e}")))?;
     if !resp.status().is_success() {
         return Err(Error::Network(format!("{url} 返回 HTTP {}", resp.status())));
     }
-    resp.text().await.map_err(|e| Error::Network(format!("读取响应失败: {e}")))
+    resp.text()
+        .await
+        .map_err(|e| Error::Network(format!("读取响应失败: {e}")))
 }
 
 fn fma_headers() -> &'static [(&'static str, &'static str)] {
@@ -407,6 +442,7 @@ fn source_generic_headers(_source: &Source) -> &'static [(&'static str, &'static
 
 fn urlencode(s: &str) -> String {
     // reqwest 0.13 带 query(&[("k","v")]) 专用方法；这里只拼客户端 id / 数字 id，不需要完整转义。
-    s.replace(' ', "%20").replace('&', "%26").replace('=', "%3D")
+    s.replace(' ', "%20")
+        .replace('&', "%26")
+        .replace('=', "%3D")
 }
-

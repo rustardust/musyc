@@ -13,4 +13,4 @@ pub use config::{Config, UiConfig};
 pub use error::{Error, Result};
 pub use model::{PlayMode, Playlist, Quality, Song, SourceKind};
 pub use paths::Paths;
-pub use sources::{BuiltinSource, BUILTIN_SOURCES, Source, SourceKind as SourceDefinitionKind};
+pub use sources::{BUILTIN_SOURCES, BuiltinSource, Source, SourceKind as SourceDefinitionKind};

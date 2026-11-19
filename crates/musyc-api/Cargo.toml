@@ -7,7 +7,6 @@ rust-version.workspace = true
 description = "网易云音乐接口客户端与官方音源解析"
 readme.workspace = true
 repository.workspace = true
-homepage.workspace = true
 
 [dependencies]
 musyc-core = { path = "../musyc-core" }

@@ -19,16 +19,10 @@ pub struct Config {
     pub home: HomeConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct HomeConfig {
     pub entries: Vec<String>,
-}
-
-impl Default for HomeConfig {
-    fn default() -> Self {
-        Self { entries: Vec::new() }
-    }
 }
 
 /// 默认前三个在线入口绑定的源 id。

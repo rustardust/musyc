@@ -115,10 +115,7 @@ impl Resolver {
                     .unwrap_or_else(|| "mp3".into());
                 let source = ResolvedSource {
                     url,
-                    provider: song
-                        .source_id
-                        .clone()
-                        .unwrap_or_else(|| "自定义".into()),
+                    provider: song.source_id.clone().unwrap_or_else(|| "自定义".into()),
                     br: 0,
                     format,
                     preview: false,

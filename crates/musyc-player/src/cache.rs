@@ -48,7 +48,8 @@ impl AudioCache {
     where
         F: FnMut(u64, Option<u64>),
     {
-        self.fetch_with_headers(http, url, key, ext, &[], on_progress).await
+        self.fetch_with_headers(http, url, key, ext, &[], on_progress)
+            .await
     }
 
     /// 带自定义 header 的下载入口（generic-json 源可能需要 UA / Referer）。

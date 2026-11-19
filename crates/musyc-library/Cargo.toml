@@ -7,7 +7,6 @@ rust-version.workspace = true
 description = "musyc 的标签 / 歌词 / 封面读写与下载落盘"
 readme.workspace = true
 repository.workspace = true
-homepage.workspace = true
 
 [dependencies]
 musyc-core = { path = "../musyc-core" }

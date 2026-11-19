@@ -223,6 +223,15 @@ impl ApiClient {
     }
 
     pub async fn song_url(&self, id: &str, quality: Quality) -> Result<Option<SongUrl>> {
+        match self.song_url_v1(id, quality).await {
+            Ok(Some(url)) => return Ok(Some(url)),
+            // song/url/v1 被上游 -460 风控时不要直接放弃：旧接口 song/url?id&br=
+            // 返回的是标准音质（br=128010），至少能让歌放出声来。
+            Ok(None) | Err(_) => self.song_url_legacy(id).await,
+        }
+    }
+
+    async fn song_url_v1(&self, id: &str, quality: Quality) -> Result<Option<SongUrl>> {
         let mut params = vec![
             ("id", id.to_string()),
             ("level", quality.level().to_string()),
@@ -232,6 +241,50 @@ impl ApiClient {
             params.push(("realIP", ip.clone()));
         }
         let v = self.get("song/url/v1", params).await?;
+        let Some(item) = v
+            .get("data")
+            .and_then(Value::as_array)
+            .and_then(|a| a.first())
+        else {
+            return Ok(None);
+        };
+        let Some(url) = item.get("url").and_then(Value::as_str) else {
+            return Ok(None);
+        };
+        if url.trim().is_empty() {
+            return Ok(None);
+        }
+        let url = if let Some(rest) = url.strip_prefix("http://") {
+            format!("https://{rest}")
+        } else {
+            url.to_string()
+        };
+        let format = item
+            .get("type")
+            .and_then(Value::as_str)
+            .map(|s| s.to_string())
+            .or_else(|| {
+                url.split('?')
+                    .next()
+                    .and_then(|p| p.rsplit('.').next())
+                    .map(|s| s.to_ascii_lowercase())
+            })
+            .unwrap_or_else(|| "mp3".into());
+        let trial = item.get("freeTrialInfo").is_some_and(|v| !v.is_null());
+        Ok(Some(SongUrl {
+            url,
+            br: item.get("br").and_then(Value::as_u64).unwrap_or(0),
+            size: item.get("size").and_then(Value::as_u64).unwrap_or(0),
+            format,
+            trial,
+        }))
+    }
+
+    /// 旧版播放链路（br 参数），作为 v1 被风控时的兜底。
+    async fn song_url_legacy(&self, id: &str) -> Result<Option<SongUrl>> {
+        let v = self
+            .get("song/url", vec![("id", id.to_string()), ("br", "999000".into())])
+            .await?;
         let Some(item) = v
             .get("data")
             .and_then(Value::as_array)

@@ -7,7 +7,6 @@ rust-version.workspace = true
 description = "musyc 的 ratatui 界面、事件循环与 MPRIS"
 readme.workspace = true
 repository.workspace = true
-homepage.workspace = true
 
 [dependencies]
 musyc-core = { path = "../musyc-core" }

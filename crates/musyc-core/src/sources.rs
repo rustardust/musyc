@@ -40,11 +40,22 @@ pub struct BuiltinSource {
 }
 
 pub const BUILTIN_SOURCES: [BuiltinSource; 3] = [
-    BuiltinSource { id: BUILTIN_NETEASE, name: "网易原创", desc: "网易原创榜 · 网易云歌单 2884035" },
-    BuiltinSource { id: BUILTIN_STREETVOICE, name: "街声推荐", desc: "街声推荐 30 首 · 本机 API" },
-    BuiltinSource { id: BUILTIN_INDIE, name: "雀乐推荐", desc: "雀乐最新 10 期" },
+    BuiltinSource {
+        id: BUILTIN_NETEASE,
+        name: "网易原创",
+        desc: "网易原创榜 · 网易云歌单 2884035",
+    },
+    BuiltinSource {
+        id: BUILTIN_STREETVOICE,
+        name: "街声推荐",
+        desc: "街声推荐 30 首 · 本机 API",
+    },
+    BuiltinSource {
+        id: BUILTIN_INDIE,
+        name: "雀乐推荐",
+        desc: "雀乐最新 10 期",
+    },
 ];
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceKind {
@@ -56,7 +67,7 @@ pub enum SourceKind {
 }
 
 impl SourceKind {
-    pub fn from_str(raw: &str) -> Option<Self> {
+    pub fn parse(raw: &str) -> Option<Self> {
         match raw.trim().to_ascii_lowercase().as_str() {
             "netease-playlist" | "netease" => Some(Self::NeteasePlaylist),
             "streetvoice-cat" | "streetvoice" => Some(Self::StreetVoiceCat),
@@ -79,7 +90,7 @@ impl SourceKind {
 }
 
 /// 一个源文件的原始 TOML 表示（宽松解析，kind 再决定校验哪些字段）。
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
 pub struct SourceFile {
     pub id: String,
@@ -108,32 +119,6 @@ pub struct SourceFile {
     pub cover_path: String,
     pub play_url_path: String,
     pub lyric_url_path: String,
-}
-
-impl Default for SourceFile {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            name: String::new(),
-            desc: String::new(),
-            kind: String::new(),
-            url: String::new(),
-            playlist_id: String::new(),
-            cat: String::new(),
-            client_id: String::new(),
-            limit: None,
-            list_path: String::new(),
-            id_path: String::new(),
-            name_path: String::new(),
-            artists_path: String::new(),
-            album_path: String::new(),
-            duration_path: String::new(),
-            duration_unit: String::new(),
-            cover_path: String::new(),
-            play_url_path: String::new(),
-            lyric_url_path: String::new(),
-        }
-    }
 }
 
 /// 校验并规整后的源。
@@ -170,7 +155,7 @@ pub enum DurationUnit {
 }
 
 impl DurationUnit {
-    pub fn from_str(raw: &str) -> Self {
+    pub fn parse(raw: &str) -> Self {
         match raw.trim().to_ascii_lowercase().as_str() {
             "s" | "sec" | "seconds" => Self::Seconds,
             _ => Self::Milliseconds,
@@ -199,7 +184,7 @@ impl Source {
         if name.is_empty() {
             return Err(Error::Config(format!("{}: 缺少 name", file.display())));
         }
-        let kind = SourceKind::from_str(&raw.kind).ok_or_else(|| {
+        let kind = SourceKind::parse(&raw.kind).ok_or_else(|| {
             Error::Config(format!(
                 "{}: 未知 kind {:?}（支持 netease-playlist / streetvoice-cat / jamendo-playlist / fma-charts / generic-json）",
                 file.display(),
@@ -241,7 +226,10 @@ impl Source {
             }
             SourceKind::GenericJson => {
                 if url.is_empty() {
-                    return Err(Error::Config(format!("{}: generic-json 需要 url", file.display())));
+                    return Err(Error::Config(format!(
+                        "{}: generic-json 需要 url",
+                        file.display()
+                    )));
                 }
             }
             SourceKind::FmaCharts | SourceKind::StreetVoiceCat => {}
@@ -269,7 +257,7 @@ impl Source {
             artists_path: raw.artists_path.trim().to_string(),
             album_path: raw.album_path.trim().to_string(),
             duration_path: raw.duration_path.trim().to_string(),
-            duration_unit: DurationUnit::from_str(&raw.duration_unit),
+            duration_unit: DurationUnit::parse(&raw.duration_unit),
             cover_path: raw.cover_path.trim().to_string(),
             play_url_path: raw.play_url_path.trim().to_string(),
             lyric_url_path: raw.lyric_url_path.trim().to_string(),
@@ -364,40 +352,48 @@ mod tests {
 
     #[test]
     fn extracts_id_from_url_query() {
-        let s = parse(r#"id = "netease-fma"
+        let s = parse(
+            r#"id = "netease-fma"
 name = "测试"
 kind = "netease-playlist"
 url = "https://music.163.com/#/playlist?id=5059642708"
-"#);
+"#,
+        );
         assert_eq!(s.playlist_id, "5059642708");
     }
 
     #[test]
     fn extracts_id_from_jamendo_url() {
-        let s = parse(r#"id = "jamendo-ssw"
+        let s = parse(
+            r#"id = "jamendo-ssw"
 name = "测试"
 kind = "jamendo-playlist"
 url = "https://www.jamendo.com/playlist/500608899/singer-songwriter"
-"#);
+"#,
+        );
         assert_eq!(s.playlist_id, "500608899");
         assert_eq!(s.client_id, Source::JAMENDO_PUBLIC_CLIENT_ID);
     }
 
     #[test]
     fn fma_defaults_to_this_week() {
-        let s = parse(r#"id = "fma-this-week"
+        let s = parse(
+            r#"id = "fma-this-week"
 name = "FMA"
 kind = "fma-charts"
-"#);
+"#,
+        );
         assert_eq!(s.url, "https://freemusicarchive.org/music/charts/this-week");
     }
 
     #[test]
     fn rejects_bad_id() {
-        let file: SourceFile = toml::from_str(r#"id = "Bad Id"
+        let file: SourceFile = toml::from_str(
+            r#"id = "Bad Id"
 name = "x"
 kind = "fma-charts"
-"#)
+"#,
+        )
         .unwrap();
         assert!(Source::validate(file, Path::new("/tmp/s.toml")).is_err());
     }
