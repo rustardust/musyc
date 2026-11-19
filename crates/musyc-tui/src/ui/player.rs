@@ -76,9 +76,15 @@ pub fn render_player(
 
     // —— 下行：居中 `歌名 歌手` ——
     if area.height >= 2 {
+        let pad_cols: usize = 2; // 左右各预留 2 列，避免沾满整个窗口宽度
         let artist = current.map(|song| song.artist_text()).unwrap_or_default();
         let artist_width = UnicodeWidthStr::width(artist.as_str());
-        let title_budget = width.saturating_sub(artist_width.min(22) + 1).max(4);
+        // 标题预算 = 可用宽度 - 左右边距 - 歌手名 - 中间空格，下限 4 保证至少能露几个字
+        let title_budget = width
+            .saturating_sub(2 * pad_cols)
+            .saturating_sub(artist_width.min(22))
+            .saturating_sub(1)
+            .max(4);
         let title_text = match current {
             Some(song) => truncate_width(&song.name, title_budget),
             None => "未选择歌曲".to_string(),
@@ -96,7 +102,22 @@ pub fn render_player(
         }
 
         let total_width: usize = spans.iter().map(|s| s.width()).sum();
-        let pad = width.saturating_sub(total_width) / 2;
+        // 若总宽仍超可用宽度，从歌名侧再截断，确保不沾满整行
+        let budget = width.saturating_sub(2 * pad_cols);
+        let title_text = if total_width > budget {
+            let excess = total_width - budget;
+            truncate_width(&title_text, title_text.len().saturating_sub(excess))
+        } else {
+            title_text
+        };
+        // 重算 spans（标题可能已再截断）
+        spans = vec![Span::styled(title_text.clone(), title_style)];
+        if !artist.is_empty() {
+            spans.push(Span::styled(" ", Style::default()));
+            spans.push(Span::styled(truncate_width(&artist, 22), Style::default()));
+        }
+        let total_width: usize = spans.iter().map(|s| s.width()).sum();
+        let pad = width.saturating_sub(total_width).max(2 * pad_cols) / 2;
         // 提示信息（下载/缓存/补全标签/toast/错误）停靠在同一行左侧，
         // 保持歌曲居中；放不下时先截断提示。
         let mut line_spans: Vec<Span<'_>> = Vec::new();
