@@ -3,7 +3,7 @@
 // 雀乐（indie.cn）歌单目录：首页取最新 vol 编号，再逐个抓取 vol 页里的
 // `songList`（Next.js flight 数据），一次性把最新 10 期歌单和歌曲返回给客户端。
 //
-// 路由：GET /musicyi/catalog/indie
+// 路由：GET /musyc/catalog/indie
 // 响应：{ playlists: [{ id, name, cover_url, track_count, songs: [...] }] }
 
 const UA =

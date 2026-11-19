@@ -20,7 +20,7 @@
   （`cfg(target_os = "linux")`，其余平台为空实现），功能开关为 `[ui] mpris`。
 - **路径约定**：全部可写路径集中在 `musyc_core::paths::Paths`，遵循 XDG
   （`~/.config/musyc`、`~/.local/share/musyc`、`~/.cache/musyc`、
-  `~/.local/state/musyc/logs`）；设置 `MUSICYI_ROOT` 后收拢到该目录下，便于便携使用与测试。
+  `~/.local/state/musyc/logs`）；设置 `MUSYC_ROOT` 后收拢到该目录下，便于便携使用与测试。
 - **存储**：M3U 歌单 + JSONL 播放历史 + TOML 配置；不引入数据库。
 - **缓存**：音频先落到 `~/.cache/musyc/audio` 再解码，seek 准确；可用
   `musyc --clear-cache` 清空，删除源码目录不影响缓存。
@@ -222,7 +222,7 @@ tag_delay_ms = 220                # 批量转换间隔，避免风控
 ```
 
 旧配置里的 `[source]` 表（`unblock` / `unblock_order` / `proxy` / `custom`）会被自动忽略，
-保存配置时消失。`MUSICYI_ROOT` 环境变量可把所有可写路径收拢到指定目录用于便携使用与测试。
+保存配置时消失。`MUSYC_ROOT` 环境变量可把所有可写路径收拢到指定目录用于便携使用与测试。
 
 命令行参数：
 

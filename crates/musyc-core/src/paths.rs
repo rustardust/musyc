@@ -10,7 +10,7 @@ use crate::error::{Error, Result};
 /// - 缓存 `~/.cache/musyc/`
 /// - 日志 `~/.local/state/musyc/logs/`
 ///
-/// 设置 `MUSICYI_ROOT` 后全部收拢到该目录下，便于做便携包与测试。
+/// 设置 `MUSYC_ROOT` 后全部收拢到该目录下，便于做便携包与测试。
 #[derive(Debug, Clone)]
 pub struct Paths {
     pub root: PathBuf,
@@ -26,7 +26,7 @@ pub struct Paths {
 
 impl Paths {
     pub fn discover() -> Result<Self> {
-        if let Some(root) = std::env::var_os("MUSICYI_ROOT") {
+        if let Some(root) = std::env::var_os("MUSYC_ROOT") {
             let root = PathBuf::from(root);
             let data_dir = root.join("data");
             return Ok(Self {

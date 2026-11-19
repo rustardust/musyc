@@ -13,7 +13,7 @@ use serde_json::Value;
 const LRCLIB_BASE: &str = "https://lrclib.net";
 const MB_BASE: &str = "https://musicbrainz.org/ws/2";
 const CAA_BASE: &str = "https://coverartarchive.org/release";
-const MB_UA: &str = "musyc/0.1 (https://github.com/yifedora/musyc)";
+const MB_UA: &str = "musyc/0.1 (https://github.com/rustardust/musyc)";
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 
 /// 面向外部库（MusicBrainz / LRCLIB / Cover Art Archive）的专用客户端。

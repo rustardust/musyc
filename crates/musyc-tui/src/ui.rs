@@ -41,7 +41,7 @@ pub fn block(title: &str, _theme: &Theme) -> Block<'static> {
         .title(Span::raw(format!(" {title} ")))
 }
 
-/// 首页字标：4 像素高（2 个终端行）的「MUSICYI」块字，品牌红。
+/// 首页字标：4 像素高（2 个终端行）的「MUSYC」块字，品牌红。
 const BRAND_ART: [&str; 2] = [
     "█▄ ▄█ █   █ ▄▀▀▀▀ ▀█▀ ▄▀▀▀▀ ▀▄ ▄▀ ▀█▀",
     "█ ▀ █ █▄▄▄█ ▄▄▄▄▀ ▄█▄ ▀▄▄▄▄   █   ▄█▄",

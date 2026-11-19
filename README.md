@@ -1,7 +1,7 @@
 # musyc
 
-[![CI](https://github.com/yifedora/musyc/actions/workflows/ci.yml/badge.svg)](https://github.com/yifedora/musyc/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/yifedora/musyc)](https://github.com/yifedora/musyc/releases)
+[![CI](https://github.com/rustardust/musyc/actions/workflows/ci.yml/badge.svg)](https://github.com/rustardust/musyc/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/rustardust/musyc)](https://github.com/rustardust/musyc/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 
 终端里的多来源音乐播放器。单一首页五个入口（网易原创 / 街声推荐 / 雀乐推荐 / 本地列表 / 最近播放），`Esc` 逐级返回并停在上次位置，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox)。
@@ -41,7 +41,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/yifedora/musyc.git
+git clone https://github.com/rustardust/musyc.git
 cd musyc
 ./install.sh                    # 构建 release 并安装到 ~/.local/bin
 
@@ -112,7 +112,7 @@ tag_delay_ms = 220   # 批量补全间隔，避免风控
 mpris = true
 ```
 
-设置 `MUSICYI_ROOT` 可把所有可写路径收拢到指定目录，便于便携使用。完整配置项、
+设置 `MUSYC_ROOT` 可把所有可写路径收拢到指定目录，便于便携使用。完整配置项、
 默认路径、`musyc --paths` 输出见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ## 已知限制

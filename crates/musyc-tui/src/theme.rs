@@ -4,7 +4,7 @@ use ratatui::style::Color;
 #[derive(Debug, Clone, Copy)]
 pub struct Theme {
     pub accent: Color,
-    /// 红橙 #F86424：首页 MUSICYI 字标；列表当前播放行；播放条歌名。
+    /// 红橙 #F86424：首页 MUSYC 字标；列表当前播放行；播放条歌名。
     pub bender: Color,
 }
 

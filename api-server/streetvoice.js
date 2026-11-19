@@ -1,10 +1,10 @@
 'use strict';
 
 // 街声（streetvoice.cn）目录与播放：
-//   GET  /musicyi/catalog/streetvoice/realtime   即时榜（前端已不使用）
-//   GET  /musicyi/catalog/streetvoice/recommend  街声推荐 30 首
-//   GET  /musicyi/catalog/streetvoice/:id        单曲详情（补时长/专辑/歌词）
-//   GET  /musicyi/stream/streetvoice/:id         HLS -> MP3，供 Rust 端缓存播放
+//   GET  /musyc/catalog/streetvoice/realtime   即时榜（前端已不使用）
+//   GET  /musyc/catalog/streetvoice/recommend  街声推荐 30 首
+//   GET  /musyc/catalog/streetvoice/:id        单曲详情（补时长/专辑/歌词）
+//   GET  /musyc/stream/streetvoice/:id         HLS -> MP3，供 Rust 端缓存播放
 //
 // HLS 分片实际是 MP3-in-TS，用 ffmpeg 无损转封装即可，不需要重新编码。
 
@@ -25,7 +25,7 @@ const RECOMMEND_URL = recommendPageUrl(0);
 const LIST_TTL_MS = 10 * 60 * 1000;
 const DETAIL_TTL_MS = 30 * 60 * 1000;
 const LIST_LIMIT = 30;
-const STREAM_DIR = path.join(os.tmpdir(), 'musicyi-streetvoice');
+const STREAM_DIR = path.join(os.tmpdir(), 'musyc-streetvoice');
 
 const LIST_SOURCES = {
   realtime: { url: REALTIME_URL, label: '即时榜' },

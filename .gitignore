@@ -13,5 +13,5 @@ Thumbs.db
 /cache
 /logs
 # 旧版本 SQLite 遗留，程序已不再使用
-/musicyi.db
-/musicyi.db-*
+/musyc.db
+/musyc.db-*
