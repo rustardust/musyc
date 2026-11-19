@@ -43,6 +43,22 @@ impl AudioCache {
         url: &str,
         key: &str,
         ext: &str,
+        on_progress: F,
+    ) -> Result<PathBuf>
+    where
+        F: FnMut(u64, Option<u64>),
+    {
+        self.fetch_with_headers(http, url, key, ext, &[], on_progress).await
+    }
+
+    /// 带自定义 header 的下载入口（generic-json 源可能需要 UA / Referer）。
+    pub async fn fetch_with_headers<F>(
+        &self,
+        http: &reqwest::Client,
+        url: &str,
+        key: &str,
+        ext: &str,
+        headers: &[(&str, &str)],
         mut on_progress: F,
     ) -> Result<PathBuf>
     where
@@ -60,9 +76,11 @@ impl AudioCache {
         let part = final_path.with_extension(format!("{}.part", sanitize_ext(ext)));
         let _ = std::fs::remove_file(&part);
 
-        let resp = http
-            .get(url)
-            .header("Referer", "https://music.163.com/")
+        let mut request = http.get(url).header("Referer", referer_for(url));
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        let resp = request
             .send()
             .await
             .map_err(|e| Error::Network(format!("下载失败: {e}")))?;
@@ -178,6 +196,20 @@ fn sanitize_ext(ext: &str) -> &'static str {
         "wav" => "wav",
         _ => "mp3",
     }
+}
+
+/// 按 URL 推断 Referer：FMA/Jamendo 等直链不带网易 Referer 会被拒或 403。
+fn referer_for(url: &str) -> &'static str {
+    if url.contains("freemusicarchive.org") {
+        return "https://freemusicarchive.org/";
+    }
+    if url.contains("jamendo.com") {
+        return "https://www.jamendo.com/";
+    }
+    if url.contains("streetvoice.cn") {
+        return "https://www.streetvoice.cn/";
+    }
+    "https://music.163.com/"
 }
 
 /// FNV-1a 64，稳定且无需依赖。

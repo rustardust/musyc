@@ -64,7 +64,8 @@ musyc ~/Music/song.flac                # 播放本地文件
 ```
 
 首页 `Enter` 进入栏目，再 `Enter` 播放，`Esc` 返回。搜索 / 歌单 / 打开分别按 `/`、`f`、`o`，
-输入框内 `Enter` 确认，`Esc` 放弃。
+输入框内 `Enter` 确认，`Esc` 放弃。首页前三个在线入口默认是「网易原创 / 街声推荐 / 雀乐推荐」，
+在首页光标停在任意一个入口上按 `s` 可改绑成任意已加载的源（见「换源」）。
 
 ## 快捷键
 
@@ -87,6 +88,7 @@ musyc ~/Music/song.flac                # 播放本地文件
 | `x` / `Delete` | 从最近播放删除选中记录 |
 | `d` | 下载选中歌曲（自动写入标题/歌手/专辑/歌词/封面） |
 | `R` | 刷新当前栏目 |
+| `s` | 换源（首页前三个在线入口，按选中项换绑） |
 | `?` | 打开 / 关闭快捷键帮助 |
 | `q` | 退出（`Ctrl+C` 强制退出） |
 
@@ -114,6 +116,25 @@ mpris = true
 
 设置 `MUSYC_ROOT` 可把所有可写路径收拢到指定目录，便于便携使用。完整配置项、
 默认路径、`musyc --paths` 输出见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+
+## 换源
+
+首页前三个在线入口可改绑；第 4 位「本地列表」、第 5 位「最近播放」不能换源（提示「不能换源」）。
+
+- 在首页把光标停在前三个入口上，按 `s` 打开选择器；`j` / `k` 移动，`Enter` 确认，`Esc` 放弃。
+- 选择器分两组：内置（网易原创 / 街声推荐 / 雀乐推荐）与自定义（从 `sources/*.toml` 加载）。
+- 选中的绑定按入口写入 `~/.config/musyc/config.toml` 的 `[home] entries`，重启后仍生效。
+- 仓库内置了四个可直接用的自定义源（`sources/`）：网易国风榜、街声 Alternative、
+  Jamendo 创作歌手、FMA This Week；`./install.sh` 会把它们复制到 `~/.local/share/musyc/sources/`。
+- 自己加源：在 `~/.config/musyc/sources/`（或 `$MUSYC_ROOT/sources/`）放一个 TOML，格式见
+  [DEVELOPMENT.md](DEVELOPMENT.md#源配置-sourcestoml)。
+
+配置示例：
+
+```toml
+[home]
+entries = ["netease-guofeng", "streetvoice-alternative", "fma-this-week"]
+```
 
 ## 已知限制
 

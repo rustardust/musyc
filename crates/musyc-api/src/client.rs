@@ -377,6 +377,17 @@ impl ApiClient {
         self.streetvoice_list("recommend").await
     }
 
+    /// 街声分类（如 7 = Alternative）前 30 首。
+    pub async fn streetvoice_cat(&self, cat: &str) -> Result<Vec<Song>> {
+        let v = self
+            .get_local(&format!("musyc/catalog/streetvoice/cat/{cat}"), vec![])
+            .await?;
+        Ok(dto::array_of(&v, &["songs"])
+            .iter()
+            .filter_map(|x| dto::source_song_from(x, SourceKind::StreetVoice))
+            .collect())
+    }
+
     pub async fn streetvoice_detail(&self, id: &str) -> Result<StreetVoiceDetail> {
         let v = self
             .get_local(&format!("musyc/catalog/streetvoice/{id}"), vec![])

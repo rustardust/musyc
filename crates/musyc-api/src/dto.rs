@@ -97,6 +97,7 @@ pub fn song_from(v: &Value) -> Option<Song> {
         source: SourceKind::Netease,
         play_url: None,
         lyric_url: None,
+        source_id: None,
         origin: None,
     })
 }
@@ -131,6 +132,11 @@ pub struct IndiePlaylist {
 pub fn source_song_from(v: &Value, source: SourceKind) -> Option<Song> {
     let id = id_of(v)?;
     let name = s(v, "name").or_else(|| s(v, "title"))?;
+    let source_id = match source {
+        SourceKind::Indie => Some("indie".to_string()),
+        SourceKind::StreetVoice => Some("streetvoice".to_string()),
+        _ => None,
+    };
     let artists = v
         .get("artists")
         .and_then(Value::as_array)
@@ -159,6 +165,7 @@ pub fn source_song_from(v: &Value, source: SourceKind) -> Option<Song> {
         source,
         play_url: https(s(v, "play_url").or_else(|| s(v, "src"))),
         lyric_url: https(s(v, "lyric_url").or_else(|| s(v, "lrc"))),
+        source_id,
         origin: None,
     })
 }

@@ -38,7 +38,12 @@ musyc/
 │   ├── screenshot-lyrics.png  # README 歌词纯享截图
 │   └── screenshot-indie.png   # README 雀乐推荐列表截图
 ├── .github/workflows/ci.yml   # CI：fmt / check / test / clippy
-├── install.sh                 # 构建 release 并安装到 ~/.local/bin（--uninstall 只删二进制）
+├── install.sh                 # 构建 release 并安装到 ~/.local/bin（--uninstall 只删二进制）；同时把 sources/*.toml 复制到数据目录
+├── sources/                   # 仓库内置源（TOML），随 install.sh 安装；同 id 的用户源覆盖
+│   ├── netease-guofeng.toml
+│   ├── streetvoice-alternative.toml
+│   ├── jamendo-singer-songwriter.toml
+│   └── fma-this-week.toml
 ├── api-server/                # Node 网易云 API + 雀乐 / 街声目录（npm，node_modules 不入库）
 │   ├── index.js               # 手写启动器：实例化 netease-cloud-music-api，挂 /musyc/health 与 musyc 路由
 │   ├── indie.js               # 雀乐最新 10 期
@@ -73,6 +78,7 @@ GET  /musyc/health                                  → {"ok":true,"catalog":tru
 GET  /musyc/catalog/indie                           雀乐最新 10 期：歌单 + 歌曲同时返回
 GET  /musyc/catalog/streetvoice/realtime            街声实时榜
 GET  /musyc/catalog/streetvoice/recommend           街声推荐前 30（每页 20，自动翻页去重）
+GET  /musyc/catalog/streetvoice/cat/:cat            街声分类列表（数字 cat，如 7 = Alternative；'' 走推荐）
 GET  /musyc/catalog/streetvoice/:id                 单曲详情（时长 / 专辑 / 封面 / 歌词）
 GET  /musyc/stream/streetvoice/:id                  播放：取 HLS 地址 → ffmpeg 无损转封装为 MP3
 ```
@@ -86,6 +92,7 @@ GET  /musyc/stream/streetvoice/:id                  播放：取 HLS 地址 → 
 - **端口**：3000；`start.sh` 已在运行时直接返回，可重复执行。`HOST=0.0.0.0` 才暴露到局域网。
 - **依赖**：`node_modules` 不入库，换机器后 `npm ci` 即可（`package-lock.json` 保证可复现）。
 - **健康检查**：`curl http://127.0.0.1:3000/musyc/health`。
+- **cat/:cat**：与推荐同构的列表解析，`cat` 仅接受 1-3 位数字；缓存与翻页逻辑共享 `LIST_SOURCES`。
 
 ### 后端为什么保留 Node
 
@@ -197,6 +204,9 @@ XDG 默认路径：
 `config.toml` 全部常用项：
 
 ```toml
+[home]
+entries = ["netease", "streetvoice", "indie"]   # 首页前三个在线入口，按 [home] 顺序显示；空/缺位回退到内置三项
+
 [api]
 base_url = "http://127.0.0.1:3000"
 timeout_secs = 15
@@ -259,6 +269,55 @@ musyc --paths                  # 打印配置 / 数据 / 缓存 / 日志路径
    `standard`，避免无损不可用导致整首失败。
 2. **官方试听**：只有官方返回 30 秒试听时才播放试听，不再尝试任何第三方音源。
 3. **无法播放**：自动跳到下一首；连续失败达到队列长度（最多 8 首）后停止。
+
+## 源配置（sources/*.toml）
+
+首页前三个在线入口（`[home] entries`）可绑定任意已加载的源。源来自三个目录，
+扫描顺序为 **仓库内置（编译时 `CARGO_MANIFEST_DIR` 定位 `<repo>/sources`）→
+`Paths::sources_dir`（`$MUSYC_ROOT/sources` 或 `~/.local/share/musyc/sources`，`install.sh` 默认复制到这里）→
+`~/.config/musyc/sources`（用户自定义，永远生效）**；同 `id` 后者覆盖前者。
+
+`musyc-core::sources::discover()` 只加载并校验，不拉取；真正拉取在 `musyc-api::source_loader::load()`。
+FMA / Jamendo / generic-json 直链在列表返回前会经 `probe_all`（HEAD，405/501 退 Range 首字节，10 并发）
+探活，失败的条目直接剔除。
+
+顶层字段：
+
+- `id`（必填，唯一；内置：`netease` / `streetvoice` / `indie`，TOML 不得占用）
+- `name`（必填）/ `desc`（可选，选择器副标题）
+- `kind`（必填）：`netease-playlist` / `streetvoice-cat` / `jamendo-playlist` / `fma-charts` / `generic-json`
+
+各 kind 的参数：
+
+- `netease-playlist`：`playlist_id`（或 `url`，自动提取 `id=` / `/playlist/<id>/`），走网易云歌单接口（`/playlist/track/all` 分页 100）。
+- `streetvoice-cat`：`cat`（数字字符串，如 `7` = Alternative；留空 = 推荐 30 首）。数据由本机 API 的
+  `/musyc/catalog/streetvoice/cat/<cat>` 提供，复用 streetvoice.js 的解析与 `LIST_TTL_MS` 缓存；播放走 `/musyc/stream/streetvoice/<id>`。
+- `jamendo-playlist`：`playlist_id`（或 `url`，自动提取 `id=`），`client_id`（可选，默认 VLC 公开 key `3dce8b55`），`limit`（可选，默认 50）。
+  走官方 API `https://api.jamendo.com/v3.0/playlists/tracks/`，返回直链 `audio` / `audiodownload`，`duration`（秒）。
+- `fma-charts`：`url`（默认 `https://freemusicarchive.org/music/charts/this-week`）。HTML 解析 `data-track-info` 属性里的 JSON，
+  `fileUrl` 为直链 MP3；**FMA 不提供时长**，播放器内时长显示为 0:00。
+- `generic-json`：`url`，`list_path`（点路径/方括号，如 `result.tracks`、`results[0].tracks`；留空 = 根即数组或根含常见字段），
+  `id_path` / `name_path` / `artists_path` / `album_path` / `duration_path` / `duration_unit`（`ms` 默认 / `s`）/
+  `cover_path` / `play_url_path` / `lyric_url_path`（均点路径）。不支持分页、脚本执行、cookie 携带。
+
+示例：
+
+```toml
+id = "example"
+name = "示例"
+desc = "generic-json 示例"
+kind = "generic-json"
+url = "https://example.com/api/list"
+list_path = "data.items"
+id_path = "id"
+name_path = "title"
+artists_path = "artist"
+duration_path = "duration"
+duration_unit = "s"
+play_url_path = "url"
+```
+
+`Song.source_id` 记录来源 `id`，用于缓存 key（`source_id:id`）与 Custom 歌曲的歌词路径（`lyric_url` 远程抓取，不走网易云 LRC）。
 
 ## 雀乐与街声
 

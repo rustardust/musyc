@@ -1,0 +1,5 @@
+id = "fma-this-week"
+name = "FMA 本周排行"
+desc = "Free Music Archive · This Week"
+kind = "fma-charts"
+url = "https://freemusicarchive.org/music/charts/this-week"

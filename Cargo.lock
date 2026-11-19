@@ -1816,13 +1816,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "musicyi"
+name = "musyc"
 version = "0.1.4"
 dependencies = [
  "anyhow",
  "clap",
- "musicyi-core",
- "musicyi-tui",
+ "musyc-core",
+ "musyc-tui",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -1830,10 +1830,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "musicyi-api"
+name = "musyc-api"
 version = "0.1.4"
 dependencies = [
- "musicyi-core",
+ "musyc-core",
  "reqwest",
  "serde",
  "serde_json",
@@ -1842,7 +1842,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "musicyi-core"
+name = "musyc-core"
 version = "0.1.4"
 dependencies = [
  "chrono",
@@ -1856,21 +1856,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "musicyi-library"
+name = "musyc-library"
 version = "0.1.4"
 dependencies = [
  "lofty",
- "musicyi-core",
+ "musyc-core",
  "reqwest",
  "tokio",
  "tracing",
 ]
 
 [[package]]
-name = "musicyi-player"
+name = "musyc-player"
 version = "0.1.4"
 dependencies = [
- "musicyi-core",
+ "musyc-core",
  "reqwest",
  "rodio",
  "tokio",
@@ -1878,17 +1878,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "musicyi-tui"
+name = "musyc-tui"
 version = "0.1.4"
 dependencies = [
  "chrono",
  "ferrous-opencc",
  "image",
  "mpris-server",
- "musicyi-api",
- "musicyi-core",
- "musicyi-library",
- "musicyi-player",
+ "musyc-api",
+ "musyc-core",
+ "musyc-library",
+ "musyc-player",
  "rand 0.10.3",
  "ratatui",
  "reqwest",

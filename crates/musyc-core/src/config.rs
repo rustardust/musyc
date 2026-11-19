@@ -14,6 +14,26 @@ pub struct Config {
     pub ui: UiConfig,
     pub download: DownloadConfig,
     pub local: LocalConfig,
+    /// 首页前三个在线推荐入口绑定的源 id（内置 id 见 default_home_entries）；
+    /// 空数组表示使用默认（网易原创榜 / 街声推荐 / 雀乐推荐）。
+    pub home: HomeConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct HomeConfig {
+    pub entries: Vec<String>,
+}
+
+impl Default for HomeConfig {
+    fn default() -> Self {
+        Self { entries: Vec::new() }
+    }
+}
+
+/// 默认前三个在线入口绑定的源 id。
+pub fn default_home_entries() -> [&'static str; 3] {
+    ["netease", "streetvoice", "indie"]
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,7 +174,7 @@ impl Config {
         Paths::ensure_parent(path)?;
         let body = toml::to_string_pretty(self)
             .map_err(|e| Error::Config(format!("序列化配置失败: {e}")))?;
-        let header = "# musyc 配置\n# 修改后重启生效。\n\n";
+        let header = "# musyc 配置\n# 修改后重启生效。\n# 首页前三个在线推荐入口绑定的源 id 见 [home] entries；\n# 可选：netease / streetvoice / indie（内置），或 sources/*.toml 里定义的 id。\n# 留空数组 [] 表示使用默认（netease, streetvoice, indie）。\n\n";
         std::fs::write(path, format!("{header}{body}"))
             .map_err(|e| Error::Config(format!("写入 {path:?} 失败: {e}")))
     }

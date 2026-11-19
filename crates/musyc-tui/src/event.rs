@@ -72,6 +72,13 @@ pub enum Event {
         seq: u64,
         result: Result<Vec<Song>, String>,
     },
+    /// 首页某个在线槽位（0-2）的内容。
+    HomeSlot {
+        seq: u64,
+        slot: usize,
+        result: Result<Vec<Song>, String>,
+    },
+
     /// 本地目录扫描。
     LocalSongs {
         seq: u64,

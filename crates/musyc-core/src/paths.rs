@@ -22,10 +22,19 @@ pub struct Paths {
     pub cache_dir: PathBuf,
     pub audio_cache: PathBuf,
     pub log_dir: PathBuf,
+    /// sources/*.toml 的扫描目录（MUSYC_ROOT 模式下指向 root/sources）。
+    pub sources_dir: PathBuf,
+    /// 用户自定义源目录（永远是 ~/.config/musyc/sources）。
+    pub user_sources_dir: PathBuf,
 }
 
 impl Paths {
     pub fn discover() -> Result<Self> {
+        let user_config_dir = dirs::config_dir()
+            .ok_or_else(|| Error::Path("找不到用户配置目录".into()))?
+            .join("musyc");
+        let user_sources_dir = user_config_dir.join("sources");
+
         if let Some(root) = std::env::var_os("MUSYC_ROOT") {
             let root = PathBuf::from(root);
             let data_dir = root.join("data");
@@ -37,14 +46,14 @@ impl Paths {
                 cache_dir: root.join("cache"),
                 audio_cache: root.join("cache/audio"),
                 log_dir: root.join("logs"),
+                sources_dir: root.join("sources"),
+                user_sources_dir,
                 data_dir,
                 root,
             });
         }
 
-        let config_dir = dirs::config_dir()
-            .ok_or_else(|| Error::Path("找不到用户配置目录".into()))?
-            .join("musyc");
+        let config_dir = user_config_dir;
         let data_dir = dirs::data_dir()
             .ok_or_else(|| Error::Path("找不到用户数据目录".into()))?
             .join("musyc");
@@ -65,6 +74,8 @@ impl Paths {
             audio_cache: cache_dir.join("audio"),
             cache_dir,
             log_dir,
+            sources_dir: data_dir.join("sources"),
+            user_sources_dir,
             data_dir,
         })
     }

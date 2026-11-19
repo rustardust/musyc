@@ -34,6 +34,7 @@ async function start() {
   // 具体列表路由必须放在 :id 之前，否则 realtime / recommend 会被当成 ID。
   app.get('/musyc/catalog/streetvoice/realtime', streetvoice.handleRealtime);
   app.get('/musyc/catalog/streetvoice/recommend', streetvoice.handleRecommend);
+  app.get('/musyc/catalog/streetvoice/cat/:cat', streetvoice.handleCat);
   app.get('/musyc/catalog/streetvoice/:id', streetvoice.handleDetail);
   app.get('/musyc/stream/streetvoice/:id', streetvoice.handleStream);
 }

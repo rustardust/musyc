@@ -3,6 +3,7 @@
 // 街声（streetvoice.cn）目录与播放：
 //   GET  /musyc/catalog/streetvoice/realtime   即时榜（前端已不使用）
 //   GET  /musyc/catalog/streetvoice/recommend  街声推荐 30 首
+//   GET  /musyc/catalog/streetvoice/cat/:cat   街声分类（browse/<cat>/recommend/latest/）30 首
 //   GET  /musyc/catalog/streetvoice/:id        单曲详情（补时长/专辑/歌词）
 //   GET  /musyc/stream/streetvoice/:id         HLS -> MP3，供 Rust 端缓存播放
 //
@@ -20,7 +21,10 @@ const UA =
 const BASE = 'https://www.streetvoice.cn';
 const REALTIME_URL = `${BASE}/music/charts/realtime/all/`;
 /// 推荐页每页 20 首，路径第一段是页码（0 起）。
-const recommendPageUrl = (page) => `${BASE}/music/browse/${page}/recommend/latest/`;
+/// 分类页路径：分类在路径里，页码用 ?page=（page=1 是第 2 页）。
+const catPageUrl = (cat, page) =>
+  `${BASE}/music/browse/${cat}/recommend/latest/${page > 0 ? `?page=${page + 1}` : ''}`;
+const recommendPageUrl = (page) => catPageUrl(0, page);
 const RECOMMEND_URL = recommendPageUrl(0);
 const LIST_TTL_MS = 10 * 60 * 1000;
 const DETAIL_TTL_MS = 30 * 60 * 1000;
@@ -31,6 +35,20 @@ const LIST_SOURCES = {
   realtime: { url: REALTIME_URL, label: '即时榜' },
   recommend: { url: RECOMMEND_URL, pageUrl: recommendPageUrl, label: '街声推荐' },
 };
+
+/// 街声分类 id → LIST_SOURCES 的 key；每次请求时按 cat 动态注册，共用缓存。
+function ensureCatSource(cat) {
+  if (!/^\d{1,3}$/.test(String(cat))) throw new Error(`无效的街声分类：${cat}`);
+  const key = `cat-${cat}`;
+  if (!LIST_SOURCES[key]) {
+    LIST_SOURCES[key] = {
+      url: catPageUrl(cat, 0),
+      pageUrl: (page) => catPageUrl(cat, page),
+      label: `街声分类 ${cat}`,
+    };
+  }
+  return key;
+}
 
 const listCaches = new Map();
 const detailCache = new Map();
@@ -153,6 +171,19 @@ function listHandler(kind) {
 
 const handleRealtime = listHandler('realtime');
 const handleRecommend = listHandler('recommend');
+
+/// 街声分类列表：/musyc/catalog/streetvoice/cat/7 → browse/7/recommend/latest/
+const handleCat = async function handleCat(req, res) {
+  const cat = String(req.params.cat || '').trim();
+  let key;
+  try {
+    key = ensureCatSource(cat);
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+    return;
+  }
+  return listHandler(key)(req, res);
+};
 
 async function loadDetail(id) {
   const now = Date.now();
@@ -302,4 +333,4 @@ async function handleStream(req, res) {
   }
 }
 
-module.exports = { handleRealtime, handleRecommend, handleDetail, handleStream };
+module.exports = { handleRealtime, handleRecommend, handleCat, handleDetail, handleStream };

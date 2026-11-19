@@ -1,0 +1,5 @@
+id = "jamendo-singer-songwriter"
+name = "Jamendo 创作歌手"
+desc = "Singer-Songwriter · CC 协议"
+kind = "jamendo-playlist"
+playlist_id = "500608899"

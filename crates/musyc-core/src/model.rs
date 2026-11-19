@@ -48,9 +48,13 @@ pub struct Song {
     /// 雀乐等来源提供的可直接播放地址。
     #[serde(default)]
     pub play_url: Option<String>,
-    /// 雀乐等来源提供的 LRC 地址。
+    /// 自定义源提供的 LRC 地址。
     #[serde(default)]
     pub lyric_url: Option<String>,
+    /// 该歌曲所属自定义源的 id（对应 sources/*.toml 的 `id`），用于历史记录与去重。
+    /// 内置来源留空。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
     /// 本地文件的实际来源路径。`id` 指向转换 / 补全后的播放文件，
     /// `origin` 始终记录扫描目录里的原始文件，便于重新生成。
     #[serde(default)]
@@ -59,7 +63,10 @@ pub struct Song {
 
 impl Song {
     pub fn key(&self) -> String {
-        format!("{}:{}", self.source.label(), self.id)
+        match &self.source_id {
+            Some(source_id) => format!("{source_id}:{}", self.id),
+            None => format!("{}:{}", self.source.label(), self.id),
+        }
     }
 
     pub fn artist_text(&self) -> String {

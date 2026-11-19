@@ -41,10 +41,10 @@ pub fn block(title: &str, _theme: &Theme) -> Block<'static> {
         .title(Span::raw(format!(" {title} ")))
 }
 
-/// 首页字标：4 像素高（2 个终端行）的「MUSYC」块字，品牌红。
+/// 首页字标：4 像素高（2 个终端行）的「MUSYC」块字，金莲花橙。
 const BRAND_ART: [&str; 2] = [
-    "█▄ ▄█ █   █ ▄▀▀▀▀ ▀█▀ ▄▀▀▀▀ ▀▄ ▄▀ ▀█▀",
-    "█ ▀ █ █▄▄▄█ ▄▄▄▄▀ ▄█▄ ▀▄▄▄▄   █   ▄█▄",
+    "█▄▄▄█  █   █  ▄█▀▀  ▀▄ ▄▀  ▄█▀▀",
+    "█ ▀ █  ▀▄▄▄▀  ▄▄█▀    █    ▀█▄▄",
 ];
 
 /// 首页入口列表。
@@ -92,7 +92,7 @@ pub fn render_home(
     frame.render_widget(Paragraph::new(art_lines.collect::<Vec<_>>()), rows[2]);
 
     // 单列居中菜单：整块按最长一行宽度居中，文字左对齐；
-    // 选中行整行使用暗色 pill 背景 + 品牌红粗体。
+    // 选中行整行使用暗色 pill 背景 + 金莲花橙粗体。
     let items_with_num: Vec<String> = items
         .iter()
         .enumerate()
@@ -569,10 +569,8 @@ pub fn render_lyrics(
     // 封面高度直接跟随面板内部高度缩放，不再绑定固定百分比。
     let show_cover = inner.height >= 5 && inner.width >= 40;
     let lyric_area = if show_cover {
-        let art_h = cover_art_height(inner.height);
-        let cover_col = (art_h * 2 + COVER_LEFT_PAD + COVER_RIGHT_PAD)
-            .max(14)
-            .min(inner.width * 2 / 5);
+        let _art_h = cover_art_height(inner.height);
+        let cover_col = inner.width * 2 / 5; // 封面占 40%，歌词占 60%
         let chunks = Layout::horizontal([
             Constraint::Length(cover_col),
             Constraint::Length(2),
@@ -1014,6 +1012,7 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme, scroll: &mut u1
         ("v", "歌词纯享（进入强制开歌词）"),
         ("PgUp/PgDn", "滚动歌词"),
         ("t / T", "补全选中 / 缺失的本地标签并生成副本"),
+        ("s", "换源（首页前三个在线入口，按选中项换绑）"),
         ("x / Del", "从最近播放删除"),
         ("d", "下载选中歌曲（写入标签/歌词/封面）"),
         ("g / G", "列表首 / 尾"),
@@ -1105,4 +1104,68 @@ mod tests {
     fn empty_text_keeps_one_line() {
         assert_eq!(wrap_text("", 4), vec![String::new()]);
     }
+}
+
+/// 换源选择器浮层：圆角边框，内置源在前，自定义源在后。
+pub fn render_source_picker(
+    frame: &mut Frame,
+    area: Rect,
+    theme: &Theme,
+    title: &str,
+    items: &[(String, String, String)], // (name, desc, tag) tag = "内置"/"自定义"
+    state: &mut TableState,
+) {
+    if area.width < 30 || area.height < 8 {
+        return;
+    }
+    let max_width = area.width.saturating_sub(4).max(20);
+    let width = ((area.width as u32 * 72 / 100) as u16).clamp(20, max_width).min(area.width);
+    let max_height = area.height.saturating_sub(2).max(4);
+    let height = ((items.len() as u16 + 3).min(max_height)).max(4);
+    let rect = Rect {
+        x: area.x + (area.width - width) / 2,
+        y: area.y + (area.height - height) / 2,
+        width,
+        height,
+    };
+    frame.render_widget(
+        Clear,
+        Rect {
+            x: area.x,
+            y: rect.y,
+            width: area.width,
+            height: rect.height,
+        },
+    );
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(Span::raw(format!(" {title} ")));
+    let inner = block.inner(rect);
+    frame.render_widget(block, rect);
+    let lines = items
+        .iter()
+        .enumerate()
+        .map(|(i, (name, desc, tag))| {
+            let is_selected = state.selected() == Some(i);
+            let style = if is_selected {
+                Style::default()
+                    .fg(theme.accent)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            Line::from(vec![
+                Span::styled(format!("{:>2}. ", i + 1), Style::default().fg(theme.bender)),
+                Span::styled(name.clone(), style),
+                Span::styled(format!("  [{}]", tag), Style::default().dim()),
+                if desc.is_empty() {
+                    Span::raw(String::new())
+                } else {
+                    Span::styled(format!("  · {}", desc), Style::default().dim())
+                },
+            ])
+        })
+        .collect::<Vec<_>>();
+    frame.render_widget(Paragraph::new(lines), inner);
 }

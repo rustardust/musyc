@@ -15,11 +15,13 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 用法: ./install.sh [--uninstall]
 
 环境变量:
-  PREFIX   安装前缀目录，默认 \$HOME/.local/bin
+  PREFIX             安装前缀目录，默认 \$HOME/.local/bin
+  MUSYC_SOURCES_DIR  内置源安装目录，默认 \$HOME/.local/share/musyc/sources
 
 说明:
   - 从源码构建 release 版本并安装 musyc 可执行文件
-  - 不会覆盖或删除 ~/.config/musyc 与 ~/.local/share/musyc 中的数据
+  - 把仓库内置源（sources/*.toml）安装到 ~/.local/share/musyc/sources/（可用 MUSYC_SOURCES_DIR 覆盖），已有同名文件会被覆盖
+  - 不会覆盖或删除 ~/.config/musyc 与 ~/.local/share/musyc 中的数据（sources/ 除外，见上）
   - --uninstall 只删除已安装的可执行文件，配置与数据需手动清理
 EOF
     exit 0
@@ -54,6 +56,14 @@ cargo build --release
 info "安装到 $PREFIX/musyc"
 mkdir -p "$PREFIX"
 install -Dm755 "$BIN" "$PREFIX/musyc"
+
+# 内置源随包分发：复制到用户数据目录，删除源码后仍可用；同名文件直接覆盖，用户改动不会保留
+SOURCES_DEST="${MUSYC_SOURCES_DIR:-$HOME/.local/share/musyc/sources}"
+if [[ -d "$ROOT/sources" ]]; then
+    info "安装内置源到 $SOURCES_DEST"
+    mkdir -p "$SOURCES_DEST"
+    install -Dm644 "$ROOT"/sources/*.toml "$SOURCES_DEST"/
+fi
 
 info "完成。运行：musyc"
 case ":$PATH:" in

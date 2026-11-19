@@ -1,0 +1,5 @@
+id = "streetvoice-alternative"
+name = "街声 Alternative"
+desc = "街声 Alternative 分类 · 最新"
+kind = "streetvoice-cat"
+cat = "7"

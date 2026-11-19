@@ -6,10 +6,11 @@ use std::time::{Duration, Instant};
 use ferrous_opencc::OpenCC;
 use ferrous_opencc::config::BuiltinConfig;
 
-use musyc_api::{ApiClient, IndiePlaylist, RawLyric, Resolver};
+use musyc_api::{ApiClient, IndiePlaylist, RawLyric, Resolver, load_custom_source};
 use musyc_core::config::Config;
 use musyc_core::lyric::Lyrics;
 use musyc_core::model::{PlayMode, Playlist, Quality, Song, SourceKind};
+use musyc_core::sources::{BUILTIN_SOURCES, Source};
 use musyc_core::{Error, Paths, Result};
 use musyc_player::{AudioCache, AudioEngine, Cmd, PlayerEvent};
 use ratatui::Frame;
@@ -26,7 +27,10 @@ use crate::input::{self, Classified};
 use crate::m3u;
 use crate::mpris::{self, MprisCmd, MprisLoop, MprisState};
 use crate::theme::THEME;
-use crate::types::{Action, CoverArt, Focus, HOME_ENTRIES, InputMode, View};
+use crate::types::{
+    Action, CoverArt, Focus, HOME_ONLINE_SLOTS, InputMode, SourcePickerItem, View,
+    home_entry_id, normalize_home_entries,
+};
 use crate::ui;
 
 /// 低于这个尺寸时只显示一行提示，避免表格 / 歌词互相挤压成乱码。
@@ -78,6 +82,7 @@ enum ListKey {
     IndiePlaylists,
     IndieTracks(String),
     StreetVoiceRecommend,
+    Source(usize),
     Local,
     Recent,
     Search,
@@ -136,6 +141,19 @@ pub struct App {
     sv_recommend_seq: u64,
     sv_recommend_loading: bool,
     sv_recommend_loaded: bool,
+
+    // 自定义源（首页前三个入口可绑 sources/*.toml）
+    sources: Vec<Source>,
+    /// 每个前三个槽位的内容缓存（按槽位序号 0..3 索引）。
+    slot_tracks: [Vec<Song>; HOME_ONLINE_SLOTS],
+    slot_loading: [bool; HOME_ONLINE_SLOTS],
+    slot_loaded: [bool; HOME_ONLINE_SLOTS],
+    slot_seq: [u64; HOME_ONLINE_SLOTS],
+    slot_error: [Option<String>; HOME_ONLINE_SLOTS],
+    /// 换源选择器：当前弹出的是哪个槽位（0..3），以及列表指针。
+    picker_slot: Option<usize>,
+    picker_items: Vec<SourcePickerItem>,
+    picker_state: TableState,
 
     // 本地
     local_songs: Vec<Song>,
@@ -296,6 +314,15 @@ impl App {
             sv_recommend_seq: 0,
             sv_recommend_loading: false,
             sv_recommend_loaded: false,
+            sources: Vec::new(),
+            slot_tracks: [Vec::new(), Vec::new(), Vec::new()],
+            slot_loading: [false; HOME_ONLINE_SLOTS],
+            slot_loaded: [false; HOME_ONLINE_SLOTS],
+            slot_seq: [0; HOME_ONLINE_SLOTS],
+            slot_error: [None, None, None],
+            picker_slot: None,
+            picker_items: Vec::new(),
+            picker_state: TableState::default(),
             local_songs: Vec::new(),
             local_needs_tag: HashSet::new(),
             local_seq: 0,
@@ -345,6 +372,18 @@ impl App {
         if app.cfg.ui.mpris {
             app.start_mpris();
         }
+        app.sources = musyc_core::sources::discover(&app.paths);
+        for slot in 0..HOME_ONLINE_SLOTS {
+            let bound = home_entry_id(&app.cfg.home.entries, slot);
+            if bound == musyc_core::sources::BUILTIN_NETEASE
+                || bound == musyc_core::sources::BUILTIN_STREETVOICE
+                || bound == musyc_core::sources::BUILTIN_INDIE
+            {
+                continue;
+            }
+            // 自定义源：启动时提示，但不在未打开时强拉取。
+            let _ = bound;
+        }
         app.ensure_home_data();
         // 歌词面板默认打开；恢复会话时也要把当前歌曲的歌词与封面取回来。
         if let Some(song) = app.current.clone() {
@@ -387,7 +426,8 @@ impl App {
             return search.songs.len();
         }
         match self.view {
-            View::Home => HOME_ENTRIES.len(),
+            View::Home => 5,
+            View::Source(slot) => self.slot_tracks.get(slot).map(|v| v.len()).unwrap_or(0),
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => self.netease_chart.len(),
                 NeteasePage::Search => self.netease_playlist_hits.len(),
@@ -434,6 +474,7 @@ impl App {
         }
         match self.view {
             View::Home => ListKey::Home,
+            View::Source(slot) => ListKey::Source(slot),
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => ListKey::NeteaseBrowse,
                 NeteasePage::Search => ListKey::NeteaseSearch,
@@ -506,6 +547,7 @@ impl App {
         }
         let songs: &[Song] = match self.view {
             View::Home => return None,
+            View::Source(slot) => self.slot_tracks.get(slot).map(|v| v.as_slice()).unwrap_or(&[]),
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => &self.netease_chart,
                 NeteasePage::Search => return None,
@@ -554,6 +596,7 @@ impl App {
         }
         match self.view {
             View::Home => false,
+            View::Source(slot) => self.slot_loading.get(slot).copied().unwrap_or(false),
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => self.netease_chart_loading,
                 _ => self.netease_loading,
@@ -593,6 +636,12 @@ impl App {
                     .unwrap_or_else(|| "雀乐歌单".into()),
             },
             View::StreetVoiceRecommend => format!("街声推荐（{}）", self.sv_recommend.len()),
+            View::Source(slot) => {
+                let id = home_entry_id(&self.cfg.home.entries, slot);
+                let name = self.source_name(&id);
+                let len = self.slot_tracks.get(slot).map(|s| s.len()).unwrap_or(0);
+                format!("{name}（{len}）")
+            }
             View::Local => format!("本地列表（{}）", self.local_songs.len()),
             View::Recent => format!("最近播放（{}）", self.history.len()),
         }
@@ -614,6 +663,10 @@ impl App {
                 IndiePage::Tracks => "歌单为空 · Esc 返回",
             },
             View::StreetVoiceRecommend => "暂无推荐 · R 刷新",
+            View::Source(slot) => match self.slot_error.get(slot).and_then(|e| e.as_deref()) {
+                Some(_) => "加载失败 · R 重试",
+                None => "暂无内容 · R 重试",
+            },
             View::Local => "本地目录为空 · 在配置 [local] dir 指定目录",
             View::Recent => "还没有播放记录",
         }
@@ -624,6 +677,57 @@ impl App {
             .selected()
             .filter(|i| *i < self.visible_len())
     }
+
+    /// 首页前三个槽位的绑定 id。
+    fn slot_ids(&self) -> [String; HOME_ONLINE_SLOTS] {
+        normalize_home_entries(&self.cfg.home.entries)
+    }
+
+    /// 首页前三个槽位的显示名（用于渲染首页菜单）。
+    fn slot_names(&self) -> [String; HOME_ONLINE_SLOTS] {
+        self.slot_ids().map(|id| self.source_name(&id))
+    }
+
+    /// 根据 id 找显示名：内置 → 内置名；自定义 → TOML 的 name；找不到 → id 本身。
+    fn source_name(&self, id: &str) -> String {
+        if let Some(builtin) = BUILTIN_SOURCES.iter().find(|b| b.id == id) {
+            return builtin.name.to_string();
+        }
+        self.sources
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| s.name.clone())
+            .unwrap_or_else(|| id.to_string())
+    }
+
+    fn slot_label(&self, slot: usize) -> &'static str {
+        match slot {
+            0 => "第一个入口",
+            1 => "第二个入口",
+            2 => "第三个入口",
+            _ => "入口",
+        }
+    }
+
+    /// 首页五个入口的显示名（前三个是自定义/内置绑定，后两个固定）。
+    fn home_labels(&self) -> [String; 5] {
+        let names = self.slot_names();
+        [
+            names[0].clone(),
+            names[1].clone(),
+            names[2].clone(),
+            "本地列表".to_string(),
+            "最近播放".to_string(),
+        ]
+    }
+
+
+    /// 解析首页槽位绑定的 Source（自定义源）；内置 id 返回 None。
+    fn slot_source(&self, slot: usize) -> Option<Source> {
+        let id = home_entry_id(&self.cfg.home.entries, slot);
+        self.sources.iter().find(|s| s.id == id).cloned()
+    }
+
 
     // ---------- 视图切换与加载 ----------
 
@@ -639,24 +743,24 @@ impl App {
         self.input_cursor = 0;
         self.error = None;
         self.view = View::Home;
-        let index = HOME_ENTRIES
-            .iter()
-            .position(|view| *view == previous)
-            .unwrap_or(0);
+        let index = match previous {
+            View::Source(slot) => slot,
+            View::Netease => 0,
+            View::StreetVoiceRecommend => 1,
+            View::Indie => 2,
+            View::Local => 3,
+            View::Recent => 4,
+            _ => 0,
+        };
         self.selection_memory.insert(ListKey::Home, index);
         self.restore_selection();
         self.ensure_home_data();
     }
 
     fn ensure_home_data(&mut self) {
-        if !self.netease_chart_loaded && !self.netease_chart_loading {
-            self.load_netease_chart();
-        }
-        if !self.sv_recommend_loaded && !self.sv_recommend_loading {
-            self.load_streetvoice();
-        }
-        if !self.indie_loaded && !self.indie_loading {
-            self.load_indie();
+        // 前三个槽位按绑定拉取；后两个固定视图各自加载
+        for slot in 0..HOME_ONLINE_SLOTS {
+            self.ensure_slot(slot);
         }
         if !self.local_loaded && !self.local_loading {
             self.scan_local();
@@ -664,9 +768,123 @@ impl App {
         self.history = history::recent(&self.paths.history_file, 50);
     }
 
+    /// 拉取第 `slot` 个首页槽位的内容；内置 id 走原有通道，自定义源走 load_custom_source。
+    fn ensure_slot(&mut self, slot: usize) {
+        if slot >= HOME_ONLINE_SLOTS { return; }
+        let bound = home_entry_id(&self.cfg.home.entries, slot);
+        match bound.as_str() {
+            musyc_core::sources::BUILTIN_NETEASE => {
+                // 复用网易原创榜，但按槽位存储
+                if !self.slot_loaded[slot] && !self.slot_loading[slot] {
+                    self.load_slot(slot);
+                }
+            }
+            musyc_core::sources::BUILTIN_STREETVOICE => {
+                if !self.slot_loaded[slot] && !self.slot_loading[slot] {
+                    self.load_slot(slot);
+                }
+            }
+            musyc_core::sources::BUILTIN_INDIE => {
+                if !self.slot_loaded[slot] && !self.slot_loading[slot] {
+                    self.load_slot(slot);
+                }
+            }
+            _ => {
+                if !self.slot_loaded[slot] && !self.slot_loading[slot] {
+                    self.load_slot(slot);
+                }
+            }
+        }
+    }
+
+    fn load_slot(&mut self, slot: usize) {
+        self.slot_seq[slot] += 1;
+        let seq = self.slot_seq[slot];
+        self.slot_loading[slot] = true;
+        self.slot_error[slot] = None;
+        let bound = home_entry_id(&self.cfg.home.entries, slot);
+        let api = self.api.clone();
+        let http = self.http.clone();
+        let tx = self.tx.clone();
+        match bound.as_str() {
+            musyc_core::sources::BUILTIN_NETEASE => {
+                tokio::spawn(async move {
+                    let result = api.original_chart(30).await.map_err(|e| e.to_string());
+                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                });
+            }
+            musyc_core::sources::BUILTIN_STREETVOICE => {
+                tokio::spawn(async move {
+                    let result = api.streetvoice_recommend().await.map_err(|e| e.to_string());
+                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                });
+            }
+            musyc_core::sources::BUILTIN_INDIE => {
+                tokio::spawn(async move {
+                    // 雀乐：拉一次目录，把所有期的歌曲扁平化作为「雀乐推荐」
+                    let result = async {
+                        let catalog = api.indie_catalog().await.map_err(|e| e.to_string())?;
+                        // 雀乐最新一期：取目录第一项的歌曲，避免把十期扁平成长队
+                        let songs = catalog.into_iter().next().map(|p| p.songs).unwrap_or_default();
+                        Ok::<Vec<Song>, String>(songs)
+                    }
+                    .await;
+                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                });
+            }
+            _ => {
+                let source = match self.slot_source(slot) {
+                    Some(s) => s,
+                    None => {
+                        self.slot_loading[slot] = false;
+                        self.slot_error[slot] = Some(format!("未找到源「{bound}」"));
+                        return;
+                    }
+                };
+                // netease-playlist kind：复用 playlist_tracks 快速通道
+                match source.kind {
+                    musyc_core::SourceDefinitionKind::NeteasePlaylist => {
+                        let id = source.playlist_id.clone();
+                        tokio::spawn(async move {
+                            let result = api.playlist_tracks(&id, 1000, 0).await.map_err(|e| e.to_string());
+                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                        });
+                    }
+                    musyc_core::SourceDefinitionKind::StreetVoiceCat => {
+                        let cat = if source.cat.trim().is_empty() {
+                            "recommend".to_string()
+                        } else {
+                            source.cat.trim().to_string()
+                        };
+                        tokio::spawn(async move {
+                            let result = if cat == "recommend" {
+                                api.streetvoice_recommend().await.map_err(|e| e.to_string())
+                            } else {
+                                api.streetvoice_cat(&cat).await.map_err(|e| e.to_string())
+                            };
+                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                        });
+                    }
+                    _ => {
+                        tokio::spawn(async move {
+                            let result = load_custom_source(&source, &http).await.map_err(|e| e.to_string());
+                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+
     fn ensure_view_data(&mut self) {
         match self.view {
             View::Home => self.ensure_home_data(),
+            View::Source(slot) => {
+                if !self.slot_loaded[slot] && !self.slot_loading[slot] {
+                    self.load_slot(slot);
+                }
+            }
             View::Netease if self.netease_page == NeteasePage::Browse => {
                 if !self.netease_chart_loaded && !self.netease_chart_loading {
                     self.load_netease_chart();
@@ -691,9 +909,9 @@ impl App {
     }
 
     fn open_home_entry(&mut self, index: usize) {
-        let Some(view) = HOME_ENTRIES.get(index).copied() else {
+        if index >= 5 {
             return;
-        };
+        }
         self.remember_selection();
         self.search_seq += 1;
         self.search = None;
@@ -702,11 +920,13 @@ impl App {
         self.input.clear();
         self.input_cursor = 0;
         self.error = None;
-        self.view = view;
-        match view {
-            View::Netease => self.netease_page = NeteasePage::Browse,
-            View::Indie => self.indie_page = IndiePage::Playlists,
-            _ => {}
+        if index < HOME_ONLINE_SLOTS {
+            let bound = home_entry_id(&self.cfg.home.entries, index);
+            // 前三个槽位统一走 View::Source(slot)；内置项在此也走同一条渲染通道
+            self.view = View::Source(index);
+            let _ = bound;
+        } else {
+            self.view = if index == 3 { View::Local } else { View::Recent };
         }
         self.restore_selection();
         self.ensure_view_data();
@@ -849,9 +1069,10 @@ impl App {
         self.error = None;
         match self.view {
             View::Home => {
-                self.load_netease_chart();
-                self.load_streetvoice();
-                self.load_indie();
+                for slot in 0..HOME_ONLINE_SLOTS {
+                    self.slot_loaded[slot] = false;
+                    self.load_slot(slot);
+                }
                 self.scan_local();
                 self.history = history::recent(&self.paths.history_file, 50);
                 self.toast("正在刷新首页…");
@@ -877,6 +1098,7 @@ impl App {
                 self.load_indie();
             }
             View::StreetVoiceRecommend => self.load_streetvoice(),
+            View::Source(slot) => self.load_slot(slot),
             View::Local => self.scan_local(),
             View::Recent => {
                 self.history = history::recent(&self.paths.history_file, 50);
@@ -1107,6 +1329,12 @@ impl App {
         }
         match self.view {
             View::Home => self.open_home_entry(index),
+            View::Source(slot) => {
+                let songs = self.slot_tracks.get(slot).cloned().unwrap_or_default();
+                if !songs.is_empty() {
+                    self.play_list(songs, index);
+                }
+            }
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => self.play_list(self.netease_chart.clone(), index),
                 NeteasePage::Search => {
@@ -1496,7 +1724,7 @@ impl App {
     ) -> Option<String> {
         match song.source {
             SourceKind::Local => musyc_library::read_lyrics(Path::new(&song.id)),
-            SourceKind::Indie => {
+            SourceKind::Indie | SourceKind::Custom => {
                 let url = song.lyric_url.clone()?;
                 let resp = http.get(url).send().await.ok()?;
                 let text = resp.text().await.ok()?;
@@ -1527,7 +1755,7 @@ impl App {
                     self.lyrics = Lyrics::parse(&text, "");
                 }
             }
-            SourceKind::Indie => {
+            SourceKind::Indie | SourceKind::Custom => {
                 let Some(url) = song.lyric_url.clone() else {
                     return;
                 };
@@ -1868,6 +2096,7 @@ impl App {
         }
         match self.view {
             View::Home => None,
+            View::Source(slot) => self.slot_tracks.get(slot)?.get(index).cloned(),
             View::Netease => match self.netease_page {
                 NeteasePage::Browse => self.netease_chart.get(index).cloned(),
                 // 热门歌单列表，没有歌曲
@@ -2124,6 +2353,27 @@ impl App {
                     Ok(_) => self.toast("没有找到可播放的歌曲"),
                     Err(e) => self.toast(format!("打开失败：{e}")),
                 }
+            }
+            Event::HomeSlot { seq, slot, result } => {
+                if slot >= HOME_ONLINE_SLOTS {
+                    return;
+                }
+                if seq != self.slot_seq[slot] {
+                    return;
+                }
+                self.slot_loading[slot] = false;
+                match result {
+                    Ok(songs) => {
+                        self.slot_tracks[slot] = songs;
+                        self.slot_loaded[slot] = true;
+                        self.slot_error[slot] = None;
+                    }
+                    Err(e) => {
+                        self.slot_error[slot] = Some(e.clone());
+                        self.toast(format!("「{}」加载失败：{e}", self.source_name(&home_entry_id(&self.cfg.home.entries, slot))));
+                    }
+                }
+                self.ensure_selection();
             }
             Event::NeteaseChart { seq, result } => {
                 if seq != self.netease_chart_seq {
@@ -2516,6 +2766,10 @@ impl App {
             }
             return;
         }
+        if self.focus == Focus::SourcePicker {
+            self.on_picker_key(key);
+            return;
+        }
         if self.focus == Focus::Input {
             self.on_input_key(key);
             return;
@@ -2598,6 +2852,7 @@ impl App {
             KeyCode::Char('R') => self.refresh_current(),
             KeyCode::Char('t') => self.tag_selected(),
             KeyCode::Char('T') => self.tag_all_missing(),
+            KeyCode::Char('s') if self.view == View::Home => self.open_source_picker(),
             KeyCode::Char('x') | KeyCode::Delete => self.remove_history_selected(),
             KeyCode::Esc => self.go_back(),
             _ => {}
@@ -2645,6 +2900,101 @@ impl App {
             View::Home => {}
             _ => self.go_home(),
         }
+    }
+
+    // ---------- 换源选择器 ----------
+
+    /// 打开首页槽位的换源浮层；前三个位才可换，后两个固定。
+    fn open_source_picker(&mut self) {
+        let index = match self.list_state.selected() {
+            Some(i) => i,
+            None => {
+                self.toast("请先在首页选一个在线入口");
+                return;
+            }
+        };
+        if index >= HOME_ONLINE_SLOTS {
+            self.toast("本地列表 / 最近播放不能换源");
+            return;
+        }
+        let mut items: Vec<SourcePickerItem> = BUILTIN_SOURCES
+            .iter()
+            .map(|b| SourcePickerItem {
+                id: b.id.to_string(),
+                name: b.name.to_string(),
+                desc: b.desc.to_string(),
+                builtin: true,
+            })
+            .collect();
+        for source in &self.sources {
+            items.push(SourcePickerItem {
+                id: source.id.clone(),
+                name: source.name.clone(),
+                desc: source.desc.clone(),
+                builtin: false,
+            });
+        }
+        let current = home_entry_id(&self.cfg.home.entries, index);
+        let selected = items.iter().position(|i| i.id == current).unwrap_or(0);
+        self.picker_items = items;
+        self.picker_slot = Some(index);
+        self.picker_state.select(Some(selected));
+        self.focus = Focus::SourcePicker;
+    }
+
+    fn on_picker_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => {
+                self.focus = Focus::List;
+                self.picker_slot = None;
+            }
+            KeyCode::Char('j') | KeyCode::Down => {
+                let len = self.picker_items.len();
+                if len == 0 { return; }
+                let cur = self.picker_state.selected().unwrap_or(0);
+                self.picker_state.select(Some((cur + 1).min(len - 1)));
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                let cur = self.picker_state.selected().unwrap_or(0);
+                self.picker_state.select(Some(cur.saturating_sub(1)));
+            }
+            KeyCode::Char('g') | KeyCode::Home => self.picker_state.select(Some(0)),
+            KeyCode::Char('G') | KeyCode::End => {
+                let len = self.picker_items.len();
+                if len > 0 {
+                    self.picker_state.select(Some(len - 1));
+                }
+            }
+            KeyCode::Enter => self.apply_source_pick(),
+            _ => {}
+        }
+    }
+
+    fn apply_source_pick(&mut self) {
+        let Some(slot) = self.picker_slot else { return };
+        let Some(index) = self.picker_state.selected() else { return };
+        let Some(item) = self.picker_items.get(index).cloned() else { return };
+        // 同 id 选中时也允许直接确认（等价于 no-op）
+        let mut entries = self.cfg.home.entries.clone();
+        while entries.len() < HOME_ONLINE_SLOTS {
+            entries.push(String::new());
+        }
+        entries[slot] = item.id.clone();
+        self.cfg.home.entries = entries;
+        // 持久化
+        if let Err(e) = self.cfg.save(&self.paths.config_file) {
+            self.toast(format!("保存配置失败：{e}"));
+        }
+        // 使该槽位失效并重新拉取
+        self.slot_loaded[slot] = false;
+        self.slot_loading[slot] = false;
+        self.slot_error[slot] = None;
+        self.slot_tracks[slot].clear();
+        self.selection_memory.insert(ListKey::Source(slot), 0);
+        self.focus = Focus::List;
+        self.picker_slot = None;
+        self.ensure_slot(slot);
+        self.toast(format!("「{}」已绑定「{}」", self.slot_label(slot), item.name));
     }
 
     fn on_input_key(&mut self, key: KeyEvent) {
@@ -2786,7 +3136,8 @@ impl App {
         } else {
             match self.view {
                 View::Home => {
-                    let labels: Vec<&str> = HOME_ENTRIES.iter().map(|v| v.label()).collect();
+                    let labels_vec = self.home_labels();
+                    let labels: Vec<&str> = labels_vec.iter().map(|s| s.as_str()).collect();
                     ui::render_home(
                         frame,
                         list_area,
@@ -2794,6 +3145,21 @@ impl App {
                         &labels,
                         &mut self.list_state,
                         &title,
+                    );
+                }
+                View::Source(slot) => {
+                    let songs = self.slot_tracks.get(slot).map(|v| v.as_slice()).unwrap_or(&[]);
+                    ui::render_songs(
+                        frame,
+                        list_area,
+                        &THEME,
+                        songs,
+                        current_key.as_deref(),
+                        &mut self.list_state,
+                        &title,
+                        loading,
+                        error,
+                        empty,
                     );
                 }
                 View::Netease => match self.netease_page {
@@ -2963,6 +3329,29 @@ impl App {
             hint,
         );
 
+        if self.focus == Focus::SourcePicker {
+            let items: Vec<(String, String, String)> = self
+                .picker_items
+                .iter()
+                .map(|i| {
+                    (
+                        i.name.clone(),
+                        i.desc.clone(),
+                        if i.builtin { "内置" } else { "自定义" }.to_string(),
+                    )
+                })
+                .collect();
+            let title = format!(
+                "换源 · {}",
+                match self.picker_slot {
+                    Some(0) => "第一个入口",
+                    Some(1) => "第二个入口",
+                    Some(2) => "第三个入口",
+                    _ => "入口",
+                }
+            );
+            ui::render_source_picker(frame, area, &THEME, &title, &items, &mut self.picker_state);
+        }
         if self.show_help {
             ui::render_help(frame, area, &THEME, &mut self.help_scroll);
         }
@@ -3419,6 +3808,7 @@ fn local_song_at(
         source: SourceKind::Local,
         play_url: None,
         lyric_url: None,
+        source_id: None,
         origin: Some(origin_path.to_string_lossy().into_owned()),
     }
 }

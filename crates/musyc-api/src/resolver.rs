@@ -98,6 +98,37 @@ impl Resolver {
             SourceKind::Local => {
                 return Err(Error::Api("本地文件不需要解析音源".into()));
             }
+            SourceKind::Custom => {
+                // TOML 自定义源（fma-charts / jamendo-playlist / generic-json …）：
+                // play_url 已经过探活，直接当可播直链返回。
+                let url = song
+                    .play_url
+                    .clone()
+                    .filter(|u| !u.trim().is_empty())
+                    .ok_or_else(|| Error::Api("自定义源缺少播放地址".into()))?;
+                let format = url
+                    .rsplit('.')
+                    .next()
+                    .and_then(|ext| ext.split(['?', '#']).next())
+                    .map(|ext| ext.to_ascii_lowercase())
+                    .filter(|ext| ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric()))
+                    .unwrap_or_else(|| "mp3".into());
+                let source = ResolvedSource {
+                    url,
+                    provider: song
+                        .source_id
+                        .clone()
+                        .unwrap_or_else(|| "自定义".into()),
+                    br: 0,
+                    format,
+                    preview: false,
+                    duration_ms: None,
+                    album: None,
+                    cover_url: None,
+                };
+                self.remember(&cache_key, &source).await;
+                return Ok(source);
+            }
             _ => {}
         }
 
