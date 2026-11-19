@@ -224,7 +224,7 @@ impl ApiClient {
 
     pub async fn song_url(&self, id: &str, quality: Quality) -> Result<Option<SongUrl>> {
         match self.song_url_v1(id, quality).await {
-            Ok(Some(url)) => return Ok(Some(url)),
+            Ok(Some(url)) => Ok(Some(url)),
             // song/url/v1 被上游 -460 风控时不要直接放弃：旧接口 song/url?id&br=
             // 返回的是标准音质（br=128010），至少能让歌放出声来。
             Ok(None) | Err(_) => self.song_url_legacy(id).await,

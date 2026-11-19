@@ -37,10 +37,11 @@ pub fn block(title: &str, _theme: &Theme) -> Block<'static> {
         .title(Span::raw(format!(" {title} ")))
 }
 
-/// 首页字标：4 像素高（2 个终端行）的「MUSYC」块字，金莲花橙。
+/// 首页字标：2 个终端行的「musyc」块字（M/U/S/Y/C 取自旧项目块字，去掉多余的 I），
+/// 每字母 5 列等宽，由 render_home 居中显示，品牌色沿用 theme.bender。
 const BRAND_ART: [&str; 2] = [
-    "█▄▄▄█  █   █  ▄█▀▀  ▀▄ ▄▀  ▄█▀▀",
-    "█ ▀ █  ▀▄▄▄▀  ▄▄█▀    █    ▀█▄▄",
+    "█▄ ▄█ █   █ ▄▀▀▀▀ ▀▄ ▄▀ ▄▀▀▀▀",
+    "█ ▀ █ █▄▄▄█ ▄▄▄▄▀   █   ▀▄▄▄▄",
 ];
 
 /// 首页入口列表。

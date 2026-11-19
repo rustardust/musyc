@@ -132,10 +132,7 @@ fn wrap_text(text: &str, width: usize) -> Vec<String> {
 }
 
 /// 封面高度跟随歌词面板内部高度变化。
-const COVER_SCALE: f64 = 0.62;
-/// 封面距面板左边的留白，以及右侧留给歌词列的空隙。
-const COVER_LEFT_PAD: u16 = 5;
-const COVER_RIGHT_PAD: u16 = 1;
+const COVER_SCALE: f64 = 0.52;
 
 fn cover_art_height(height: u16) -> u16 {
     let art = (height as f64 * COVER_SCALE).round() as u16;
@@ -153,12 +150,10 @@ fn render_cover(frame: &mut Frame, area: Rect, _theme: &Theme, cover: Option<&Co
         .filter(|aspect| aspect.is_finite() && *aspect > 0.0)
         .unwrap_or(1.0);
 
-    let left_pad = COVER_LEFT_PAD.min(area.width.saturating_sub(1));
-    let max_art_w = area.width.saturating_sub(left_pad + COVER_RIGHT_PAD).max(1) as usize;
+    // 封面位于左侧 40% 列内；先按整列宽度估算最大绘制宽度，再在列内水平居中。
+    let max_art_w = area.width.max(1) as usize;
     let max_art_h = cover_art_height(area.height) as usize;
 
-    // braille 一个字符承载 2x4 个点；终端字符高度约为宽度的两倍，
-    // 因此保持视觉比例时字符宽度 = 2 * 字符高度 * 图片宽高比。
     let mut art_h = max_art_h;
     let mut art_w = (art_h as f64 * 2.0 * aspect).round().max(1.0) as usize;
     if art_w > max_art_w {
@@ -167,6 +162,9 @@ fn render_cover(frame: &mut Frame, area: Rect, _theme: &Theme, cover: Option<&Co
     }
     art_h = art_h.clamp(1, max_art_h);
     art_w = art_w.clamp(1, max_art_w);
+
+    // 在左侧 40% 列内水平居中，再往右偏移 1 空格。
+    let left_pad = area.width.saturating_sub(art_w as u16) / 2 + 1;
 
     let rect = Rect {
         x: area.x + left_pad,

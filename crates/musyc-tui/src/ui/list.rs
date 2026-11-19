@@ -3,6 +3,7 @@ use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Cell, HighlightSpacing, Paragraph, Row, Table, TableState, Wrap};
+use unicode_width::UnicodeWidthStr;
 
 use musyc_core::model::{Song, SourceKind};
 use musyc_core::util::{format_duration, truncate_width};
@@ -46,11 +47,13 @@ pub(super) fn draw_error(frame: &mut Frame, area: Rect, message: &str, _theme: &
     );
 }
 
-// 首页 / 列表标题行：`‹ 标题`，仅加粗，不使用颜色。
-pub(super) fn heading_line(title: &str, _theme: &Theme) -> Line<'static> {
+// 首页 / 列表标题行：`‹ 标题`，`‹` 右对齐到序号列宽（与下方数字序号对齐），仅加粗，不使用颜色。
+pub(super) fn heading_line(title: &str, idx_w: usize, _theme: &Theme) -> Line<'static> {
     let bold = Style::default().add_modifier(Modifier::BOLD);
+    let prefix = format!("{:>idx_w$}", "‹");
     Line::from(vec![
-        Span::styled("‹ ", bold),
+        Span::styled(prefix, bold),
+        Span::styled(" ".to_string(), bold),
         Span::styled(title.to_string(), bold),
     ])
 }
@@ -118,27 +121,42 @@ pub(super) fn song_table<'a>(
 
     let rows = songs.iter().enumerate().map(|(i, song)| {
         let is_current = current_key.is_some_and(|key| key == song.key());
-        let title = truncate_width(&song.name, title_w);
-        let artist = truncate_width(&song.artist_text(), artist_w);
+        // 标题/歌手单元格：先按列宽扣 2 列做 truncate（避免贴边），再在列宽内居中对齐，
+        // 使左右空格对称（差异最多 1 列），所有列表（本地/街声/网易/雀乐）均复用此逻辑。
+        let title_pad = title_w.saturating_sub(2);
+        let artist_pad = artist_w.saturating_sub(2);
+        let title = truncate_width(&song.name, title_pad);
+        let artist = truncate_width(&song.artist_text(), artist_pad);
         let duration = if song.duration_ms > 0 {
             format_duration(song.duration_ms)
         } else {
             "--:--".to_string()
         };
+        let center = |text: &str, col_w: usize| -> String {
+            let t = UnicodeWidthStr::width(text);
+            if t >= col_w {
+                return text.to_string();
+            }
+            // 居左显示：左侧留 1 列边距，避免贴边；右侧剩余空间留白。
+            let left = 1;
+            let right = col_w.saturating_sub(t + left);
+            format!(" {text}{}", " ".repeat(right))
+        };
         let mut cells = vec![
             Cell::from(format!("{:>idx_w$}", i + 1)),
-            Cell::from(title),
-            Cell::from(artist),
+            Cell::from(center(&title, title_w)),
+            Cell::from(center(&artist, artist_w)),
         ];
         if show_album {
+            let album_pad = album_w.saturating_sub(2);
             let album = if song.album.trim().is_empty() {
                 "—".to_string()
             } else {
-                truncate_width(&song.album, album_w)
+                truncate_width(&song.album, album_pad)
             };
-            cells.push(Cell::from(album));
+            cells.push(Cell::from(center(&album, album_w)));
         }
-        cells.push(Cell::from(format!("{:>dur_w$}", duration)));
+        cells.push(Cell::from(format!("{:>dur_w$}  ", duration)));
         let row = Row::new(cells).height(1);
         if is_current {
             row.style(Style::default().fg(theme.bender))
@@ -155,7 +173,7 @@ pub(super) fn song_table<'a>(
     if show_album {
         widths.push(Constraint::Length(album_w as u16));
     }
-    widths.push(Constraint::Length(dur_w as u16));
+    widths.push(Constraint::Length((dur_w + 2) as u16));
 
     // 选中行若恰好是当前播放歌曲，则与 bender 保持一致（红黄中间值）。
     let highlight_fg = if highlight_current {
@@ -198,8 +216,10 @@ pub fn render_songs(
     if area.height < 2 || area.width == 0 {
         return;
     }
+    // 标题行的 ‹ 与下方数字序号右对齐（idx_w：条目数位数，至少 2 列）。
+    let idx_w = songs.len().to_string().len().max(2);
     let (heading_area, inner) = list_split(area);
-    frame.render_widget(Paragraph::new(heading_line(&title, theme)), heading_area);
+    frame.render_widget(Paragraph::new(heading_line(&title, idx_w, theme)), heading_area);
 
     if let Some(err) = error
         && songs.is_empty()
