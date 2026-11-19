@@ -60,9 +60,13 @@ install -Dm755 "$BIN" "$PREFIX/musyc"
 # 内置源随包分发：复制到用户数据目录，删除源码后仍可用；同名文件直接覆盖，用户改动不会保留
 SOURCES_DEST="${MUSYC_SOURCES_DIR:-$HOME/.local/share/musyc/sources}"
 if [[ -d "$ROOT/sources" ]]; then
-    info "安装内置源到 $SOURCES_DEST"
-    mkdir -p "$SOURCES_DEST"
-    install -Dm644 "$ROOT"/sources/*.toml "$SOURCES_DEST"/
+    if [[ "$SOURCES_DEST" -ef "$ROOT/sources" ]]; then
+        info "内置源已在 $SOURCES_DEST（与仓库同一目录），跳过复制"
+    else
+        info "安装内置源到 $SOURCES_DEST"
+        mkdir -p "$SOURCES_DEST"
+        install -Dm644 "$ROOT"/sources/*.toml "$SOURCES_DEST"/
+    fi
 fi
 
 info "完成。运行：musyc"
