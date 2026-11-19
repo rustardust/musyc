@@ -23,73 +23,20 @@ pub fn render_player(
     mode: PlayMode,
     status: Option<String>,
 ) {
-    // fox 底栏：无边框。上行整宽进度条，右端 `已播放 ● 总时长 短模式名`；
-    // 下行居中 `歌名 歌手`。
+    // fox 底栏：无边框。上行居中 `歌名`（总宽 ≤ 可用宽度 60%，余留给通知）；
+    // 下行整宽进度条，右端 `已播放 ● 总时长 短模式名`（贴近底部）。
     if area.height == 0 || area.width == 0 {
         return;
     }
     let width = area.width as usize;
 
-    // —— 上行：整宽进度条，右端 `cur ● dur 模式`（默认样式）——
-    let mode_text = mode.short_label().to_string();
-    let note_icon = if loading {
-        "…".to_string()
-    } else if playing {
-        "●".to_string()
-    } else if current.is_some() {
-        "■".to_string()
-    } else {
-        "·".to_string()
-    };
-    let time_text = if dur_ms > 0 {
-        format!(
-            "{} {} {}",
-            format_duration(pos_ms),
-            note_icon,
-            format_duration(dur_ms)
-        )
-    } else {
-        note_icon
-    };
-    let trailing = format!("{time_text} {mode_text}");
-    let trailing_width = UnicodeWidthStr::width(trailing.as_str());
-    let bar_width = width.saturating_sub(trailing_width + 1).max(1);
-    let ratio = if dur_ms > 0 {
-        (pos_ms.min(dur_ms) as f64 / dur_ms as f64).clamp(0.0, 1.0)
-    } else {
-        0.0
-    };
-    let filled = (bar_width as f64 * ratio).round() as usize;
-    let rest = bar_width.saturating_sub(filled);
-    let fill_style = if current.is_some() {
-        Style::default().fg(theme.accent)
-    } else {
-        Style::default()
-    };
-    let bar = vec![
-        Span::styled("━".repeat(filled), fill_style),
-        Span::styled("┄".repeat(rest), Style::default()),
-        Span::raw(" "),
-        Span::raw(trailing),
-    ];
-    frame.render_widget(Paragraph::new(Line::from(bar)), Rect { height: 1, ..area });
-
-    // —— 下行：居中 `歌名 歌手` ——
-    // 歌名+歌手总宽不超过可用宽度的 60%，剩下的留给通知/提示（hint）。
+    // —— 上行：居中 `歌名`（歌手名不再显示） ——
     if area.height >= 2 {
         let pad_cols: usize = 2; // 左右各预留 2 列
         let available = width.saturating_sub(2 * pad_cols); // 可用内容宽度
-        let max_content = available * 3 / 5; // 内容上限：60%
-        let artist = current.map(|song| song.artist_text()).unwrap_or_default();
-        let artist_width = UnicodeWidthStr::width(artist.as_str());
-        let artist_part = artist_width.min(22);
-        // 歌名预算 = 内容上限 - 歌手 - 中间空格，下限 4 保证至少能露几个字
-        let title_budget = max_content
-            .saturating_sub(artist_part)
-            .saturating_sub(1)
-            .max(4);
+        let max_content = available * 3 / 5; // 歌名上限：60%，余留给通知
         let title_text = match current {
-            Some(song) => truncate_width(&song.name, title_budget),
+            Some(song) => truncate_width(&song.name, max_content.max(4)),
             None => "未选择歌曲".to_string(),
         };
         let title_style = match current {
@@ -98,17 +45,9 @@ pub fn render_player(
                 .add_modifier(Modifier::BOLD),
             None => Style::default(),
         };
-        let mut spans = vec![Span::styled(title_text.clone(), title_style)];
-        if !artist.is_empty() {
-            spans.push(Span::styled(" ", Style::default()));
-            spans.push(Span::styled(truncate_width(&artist, 22), Style::default()));
-        }
-
-        let total_width: usize = spans.iter().map(|s| s.width()).sum();
-        // 居中：左右各 pad_cols，剩余空间平分
+        let total_width = UnicodeWidthStr::width(title_text.as_str());
+        // 左右各 pad_cols，剩余空间平分使歌名居中；右侧留给 hint 停靠
         let pad = pad_cols + (available.saturating_sub(total_width)) / 2;
-        // 提示信息（下载/缓存/补全标签/toast/错误）停靠在同一行左侧，
-        // 保持歌曲居中；放不下时先截断提示。
         let mut line_spans: Vec<Span<'_>> = Vec::new();
         if let Some(hint) = status.as_deref()
             && pad >= 2
@@ -120,9 +59,62 @@ pub fn render_player(
         } else {
             line_spans.push(Span::raw(" ".repeat(pad)));
         }
-        line_spans.extend(spans);
+        line_spans.push(Span::styled(title_text.clone(), title_style));
         frame.render_widget(
             Paragraph::new(Line::from(line_spans)),
+            Rect {
+                y: area.y,
+                height: 1,
+                ..area
+            },
+        );
+    }
+
+    // —— 下行：整宽进度条，右端 `cur ● dur 模式`（贴近底部） ——
+    if area.height >= 2 {
+        let mode_text = mode.short_label().to_string();
+        let note_icon = if loading {
+            "…".to_string()
+        } else if playing {
+            "●".to_string()
+        } else if current.is_some() {
+            "■".to_string()
+        } else {
+            "·".to_string()
+        };
+        let time_text = if dur_ms > 0 {
+            format!(
+                "{} {} {}",
+                format_duration(pos_ms),
+                note_icon,
+                format_duration(dur_ms)
+            )
+        } else {
+            note_icon
+        };
+        let trailing = format!("{time_text} {mode_text}");
+        let trailing_width = UnicodeWidthStr::width(trailing.as_str());
+        let bar_width = width.saturating_sub(trailing_width + 1).max(1);
+        let ratio = if dur_ms > 0 {
+            (pos_ms.min(dur_ms) as f64 / dur_ms as f64).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let filled = (bar_width as f64 * ratio).round() as usize;
+        let rest = bar_width.saturating_sub(filled);
+        let fill_style = if current.is_some() {
+            Style::default().fg(theme.accent)
+        } else {
+            Style::default()
+        };
+        let bar = vec![
+            Span::styled("━".repeat(filled), fill_style),
+            Span::styled("┄".repeat(rest), Style::default()),
+            Span::raw(" "),
+            Span::raw(trailing),
+        ];
+        frame.render_widget(
+            Paragraph::new(Line::from(bar)),
             Rect {
                 y: area.y + 1,
                 height: 1,
