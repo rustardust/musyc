@@ -31,7 +31,7 @@ if curl -fsS -m 2 "$HEALTH_URL" >/dev/null 2>&1; then
     if [[ -n "$pid" ]]; then
         echo "$pid" >"$DIR/server.pid"
     fi
-    if ! curl -fsS -m 2 "http://127.0.0.1:${PORT}/musicyi/health" >/dev/null 2>&1; then
+    if ! curl -fsS -m 2 "http://127.0.0.1:${PORT}/musyc/health" >/dev/null 2>&1; then
         echo "警告：运行中的 API 是旧版本（没有雀乐 / 街声目录路由），请先执行 ./stop.sh 再重新启动。" >&2
     fi
     echo "API 已在运行：http://127.0.0.1:${PORT}${pid:+（pid $pid）}"
@@ -44,7 +44,7 @@ echo $! >server.pid
 
 for _ in $(seq 1 40); do
     if curl -fsS -m 1 "$HEALTH_URL" >/dev/null 2>&1 &&
-        curl -fsS -m 1 "http://127.0.0.1:${PORT}/musicyi/health" >/dev/null 2>&1; then
+        curl -fsS -m 1 "http://127.0.0.1:${PORT}/musyc/health" >/dev/null 2>&1; then
         echo "API 启动成功：http://127.0.0.1:${PORT}（pid $(cat server.pid)）"
         exit 0
     fi

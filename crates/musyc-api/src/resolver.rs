@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use musicyi_core::model::{Quality, Song, SourceKind};
-use musicyi_core::{Error, Result};
+use musyc_core::model::{Quality, Song, SourceKind};
+use musyc_core::{Error, Result};
 use tokio::sync::Mutex;
 
 use crate::client::ApiClient;
@@ -77,7 +77,7 @@ impl Resolver {
                 let detail = self.api.streetvoice_detail(&song.id).await.ok();
                 let source = ResolvedSource {
                     url: format!(
-                        "{}/musicyi/stream/streetvoice/{}",
+                        "{}/musyc/stream/streetvoice/{}",
                         self.api.base_url(),
                         song.id
                     ),

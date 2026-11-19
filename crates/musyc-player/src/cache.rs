@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use musicyi_core::{Error, Result};
+use musyc_core::{Error, Result};
 
 /// 音频下载缓存（LRU，按 mtime 淘汰）。
 #[derive(Debug, Clone)]

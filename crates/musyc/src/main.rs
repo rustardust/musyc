@@ -1,10 +1,10 @@
 use anyhow::Context;
 use clap::Parser;
-use musicyi_core::model::Quality;
-use musicyi_core::{Config, Paths};
+use musyc_core::model::Quality;
+use musyc_core::{Config, Paths};
 
 #[derive(Parser, Debug)]
-#[command(name = "musicyi", version, about = "终端里的多来源音乐播放器")]
+#[command(name = "musyc", version, about = "终端里的多来源音乐播放器")]
 struct Cli {
     /// 网易云链接 / 歌曲或歌单 ID / M3U 路径 / 搜索关键词
     input: Option<String>,
@@ -57,11 +57,11 @@ fn main() -> anyhow::Result<()> {
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
-        .thread_name("musicyi")
+        .thread_name("musyc")
         .build()
         .context("创建 tokio runtime 失败")?;
 
-    let result = rt.block_on(musicyi_tui::run(cfg, paths.clone(), cli.input));
+    let result = rt.block_on(musyc_tui::run(cfg, paths.clone(), cli.input));
     if let Err(e) = &result {
         tracing::error!("主循环退出: {e}");
     }
@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
 
 fn init_tracing(paths: &Paths) -> anyhow::Result<()> {
     std::fs::create_dir_all(&paths.log_dir).ok();
-    let file = tracing_appender::rolling::daily(&paths.log_dir, "musicyi.log");
+    let file = tracing_appender::rolling::daily(&paths.log_dir, "musyc.log");
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
     tracing_subscriber::fmt()

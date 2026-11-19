@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use musicyi_core::config::ApiConfig;
-use musicyi_core::model::{Playlist, Quality, Song, SourceKind};
-use musicyi_core::{Error, Result};
+use musyc_core::config::ApiConfig;
+use musyc_core::model::{Playlist, Quality, Song, SourceKind};
+use musyc_core::{Error, Result};
 use serde_json::Value;
 
 use crate::dto;
@@ -46,7 +46,7 @@ impl ApiClient {
             .timeout(Duration::from_secs(cfg.timeout_secs.clamp(3, 60)))
             .user_agent(
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
-                 (KHTML, like Gecko) Chrome/131.0 Safari/537.36 musicyi/0.1",
+                 (KHTML, like Gecko) Chrome/131.0 Safari/537.36 musyc/0.1",
             )
             .build()
             .map_err(|e| Error::Network(format!("构建 HTTP 客户端失败: {e}")))?;
@@ -83,7 +83,7 @@ impl ApiClient {
         self.get_inner(path, params, false).await
     }
 
-    /// 本机 musicyi 路由：绕开 apicache，避免旧目录/同名歌曲串数据。
+    /// 本机 musyc 路由：绕开 apicache，避免旧目录/同名歌曲串数据。
     async fn get_local(&self, path: &str, params: Vec<(&str, String)>) -> Result<Value> {
         self.get_inner(path, params, true).await
     }
@@ -350,7 +350,7 @@ impl ApiClient {
 
     /// 雀乐最新 10 期，歌曲随歌单一起返回。
     pub async fn indie_catalog(&self) -> Result<Vec<dto::IndiePlaylist>> {
-        let v = self.get_local("musicyi/catalog/indie", vec![]).await?;
+        let v = self.get_local("musyc/catalog/indie", vec![]).await?;
         Ok(dto::array_of(&v, &["playlists"])
             .iter()
             .filter_map(dto::indie_playlist_from)
@@ -359,7 +359,7 @@ impl ApiClient {
 
     async fn streetvoice_list(&self, kind: &str) -> Result<Vec<Song>> {
         let v = self
-            .get_local(&format!("musicyi/catalog/streetvoice/{kind}"), vec![])
+            .get_local(&format!("musyc/catalog/streetvoice/{kind}"), vec![])
             .await?;
         Ok(dto::array_of(&v, &["songs"])
             .iter()
@@ -379,7 +379,7 @@ impl ApiClient {
 
     pub async fn streetvoice_detail(&self, id: &str) -> Result<StreetVoiceDetail> {
         let v = self
-            .get_local(&format!("musicyi/catalog/streetvoice/{id}"), vec![])
+            .get_local(&format!("musyc/catalog/streetvoice/{id}"), vec![])
             .await?;
         Ok(StreetVoiceDetail {
             duration_ms: v.get("duration_ms").and_then(Value::as_u64).unwrap_or(0),

@@ -1,16 +1,16 @@
 [package]
-name = "musicyi-library"
+name = "musyc-library"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "musicyi 的标签 / 歌词 / 封面读写与下载落盘"
+description = "musyc 的标签 / 歌词 / 封面读写与下载落盘"
 readme.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-musicyi-core = { path = "../musicyi-core" }
+musyc-core = { path = "../musyc-core" }
 lofty = "0.25"
 reqwest = { workspace = true }
 tokio = { workspace = true }

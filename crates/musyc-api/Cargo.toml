@@ -1,5 +1,5 @@
 [package]
-name = "musicyi-api"
+name = "musyc-api"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,7 +10,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-musicyi-core = { path = "../musicyi-core" }
+musyc-core = { path = "../musyc-core" }
 serde.workspace = true
 serde_json.workspace = true
 reqwest.workspace = true

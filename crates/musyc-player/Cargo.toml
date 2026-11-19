@@ -1,16 +1,16 @@
 [package]
-name = "musicyi-player"
+name = "musyc-player"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "musicyi 的 rodio 播放线程与音频缓存"
+description = "musyc 的 rodio 播放线程与音频缓存"
 readme.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-musicyi-core = { path = "../musicyi-core" }
+musyc-core = { path = "../musyc-core" }
 rodio.workspace = true
 reqwest.workspace = true
 tokio.workspace = true

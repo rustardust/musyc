@@ -1,6 +1,6 @@
-use musicyi_core::lyric::Lyrics;
-use musicyi_core::model::{PlayMode, Playlist, Song, SourceKind};
-use musicyi_core::util::{format_duration, human_count, pad_width, truncate_width};
+use musyc_core::lyric::Lyrics;
+use musyc_core::model::{PlayMode, Playlist, Song, SourceKind};
+use musyc_core::util::{format_duration, human_count, pad_width, truncate_width};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};

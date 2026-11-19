@@ -1,19 +1,19 @@
 [package]
-name = "musicyi-tui"
+name = "musyc-tui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "musicyi 的 ratatui 界面、事件循环与 MPRIS"
+description = "musyc 的 ratatui 界面、事件循环与 MPRIS"
 readme.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-musicyi-core = { path = "../musicyi-core" }
-musicyi-api = { path = "../musicyi-api" }
-musicyi-player = { path = "../musicyi-player" }
-musicyi-library = { path = "../musicyi-library" }
+musyc-core = { path = "../musyc-core" }
+musyc-api = { path = "../musyc-api" }
+musyc-player = { path = "../musyc-player" }
+musyc-library = { path = "../musyc-library" }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 ratatui.workspace = true
 tokio.workspace = true

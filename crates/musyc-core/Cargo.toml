@@ -1,10 +1,10 @@
 [package]
-name = "musicyi-core"
+name = "musyc-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "musicyi 核心：模型、配置、路径、歌词解析"
+description = "musyc 核心：模型、配置、路径、歌词解析"
 readme.workspace = true
 repository.workspace = true
 homepage.workspace = true

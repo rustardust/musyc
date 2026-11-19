@@ -1,4 +1,4 @@
-//! musicyi 的核心：领域模型、配置与路径约定。
+//! musyc 的核心：领域模型、配置与路径约定。
 
 pub mod config;
 pub mod error;

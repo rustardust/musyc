@@ -3,7 +3,7 @@
 //! netease-cloud-music-api 的不同接口返回字段名不一致（`ar/al/dt` 与
 //! `artists/album/duration` 并存），这里统一在 JSON 层做兼容。
 
-use musicyi_core::model::{Playlist, Song, SourceKind};
+use musyc_core::model::{Playlist, Song, SourceKind};
 use serde_json::Value;
 
 fn s(v: &Value, key: &str) -> Option<String> {

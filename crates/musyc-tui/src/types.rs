@@ -1,4 +1,4 @@
-use musicyi_core::model::PlayMode;
+use musyc_core::model::PlayMode;
 
 /// 单一首页列表中的五个入口；选中后进入对应内容列表。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

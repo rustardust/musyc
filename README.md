@@ -1,12 +1,12 @@
-# musicyi
+# musyc
 
-[![CI](https://github.com/yifedora/musicyi/actions/workflows/ci.yml/badge.svg)](https://github.com/yifedora/musicyi/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/yifedora/musicyi)](https://github.com/yifedora/musicyi/releases)
+[![CI](https://github.com/yifedora/musyc/actions/workflows/ci.yml/badge.svg)](https://github.com/yifedora/musyc/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/yifedora/musyc)](https://github.com/yifedora/musyc/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 
 终端里的多来源音乐播放器。单一首页五个入口（网易原创 / 街声推荐 / 雀乐推荐 / 本地列表 / 最近播放），`Esc` 逐级返回并停在上次位置，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox)。
 
-![musicyi 首页](docs/screenshot.png)
+![musyc 首页](docs/screenshot.png)
 
 | 歌词纯享 | 雀乐推荐列表 |
 | --- | --- |
@@ -25,7 +25,7 @@
   `v` 进入歌词纯享（歌词铺满内容区）。
 - **播放**：`Space` 暂停，`]` / `[` 切歌，`←` / `→` 快进退 5 秒，四种播放模式，
   进度 seek，音量记忆，退出保存队列与进度（下次启动暂停在原位置）。
-- **下载**：`d` 下载选中歌曲到 `[download] dir`（默认 `~/Music/musicyi`），
+- **下载**：`d` 下载选中歌曲到 `[download] dir`（默认 `~/Music/musyc`），
   文件名为 `歌手 - 标题.扩展名`，同名自动追加序号；下载后自动写入标题 / 歌手 / 专辑、
   歌词（USLT）与封面（Front Cover），一次只下载一首。
 - **MPRIS**：媒体键 / `playerctl` / 桌面媒体控件（仅 Linux）。
@@ -41,13 +41,13 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/yifedora/musicyi.git
-cd musicyi
+git clone https://github.com/yifedora/musyc.git
+cd musyc
 ./install.sh                    # 构建 release 并安装到 ~/.local/bin
 
 cd api-server && npm ci && cd ..
 ./api-server/start.sh           # 启动本机 API（默认 127.0.0.1:3000）
-musicyi
+musyc
 ```
 
 关闭 API：`./api-server/stop.sh`。
@@ -55,12 +55,12 @@ musicyi
 ## 基本用法
 
 ```bash
-musicyi                                  # 首页
-musicyi "关键词"                          # 搜索单曲
-musicyi "https://music.163.com/#/song?id=1858110236"
-musicyi "https://music.163.com/#/playlist?id=3778678"
-musicyi ~/Music/list.m3u                 # 打开 M3U（可含路径 / 链接 / ID）
-musicyi ~/Music/song.flac                # 播放本地文件
+musyc                                  # 首页
+musyc "关键词"                          # 搜索单曲
+musyc "https://music.163.com/#/song?id=1858110236"
+musyc "https://music.163.com/#/playlist?id=3778678"
+musyc ~/Music/list.m3u                 # 打开 M3U（可含路径 / 链接 / ID）
+musyc ~/Music/song.flac                # 播放本地文件
 ```
 
 首页 `Enter` 进入栏目，再 `Enter` 播放，`Esc` 返回。搜索 / 歌单 / 打开分别按 `/`、`f`、`o`，
@@ -95,7 +95,7 @@ musicyi ~/Music/song.flac                # 播放本地文件
 
 ## 配置
 
-配置文件首次启动自动生成，位于 `~/.config/musicyi/config.toml`，常用项：
+配置文件首次启动自动生成，位于 `~/.config/musyc/config.toml`，常用项：
 
 ```toml
 [player]
@@ -105,7 +105,7 @@ mode = "list_loop"   # list_loop / single / shuffle / sequential
 
 [local]
 dir = ""             # 留空用 ~/Music/playlist
-output_dir = ""      # 留空用 ~/Music/musicyi/local
+output_dir = ""      # 留空用 ~/Music/musyc/local
 tag_delay_ms = 220   # 批量补全间隔，避免风控
 
 [ui]
@@ -113,7 +113,7 @@ mpris = true
 ```
 
 设置 `MUSICYI_ROOT` 可把所有可写路径收拢到指定目录，便于便携使用。完整配置项、
-默认路径、`musicyi --paths` 输出见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+默认路径、`musyc --paths` 输出见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ## 已知限制
 
@@ -162,9 +162,9 @@ real_ip = "114.114.114.114"
 **想重新开始**
 
 ```bash
-rm -rf ~/.cache/musicyi/audio \
-       ~/.local/share/musicyi/history.jsonl \
-       ~/.local/share/musicyi/session.json
+rm -rf ~/.cache/musyc/audio \
+       ~/.local/share/musyc/history.jsonl \
+       ~/.local/share/musyc/session.json
 ```
 
 下载与转换后的音乐文件不会被删除。
@@ -173,7 +173,7 @@ rm -rf ~/.cache/musicyi/audio \
 
 - 本软件是播放器，不拥有、不存储、不分发任何音乐作品；歌曲、封面、歌词、专辑信息的版权归原权利人所有。
 - **仅限互联网试听**：通过音源平台获取的音频仅用于个人试听；网易云等只能拿到官方 30 秒试听片段，即为正常现象。
-- **24 小时内删除**：试听缓存（`~/.cache/musicyi/audio/`）及通过 `d` 下载的文件，均须在 **24 小时内删除**；
+- **24 小时内删除**：试听缓存（`~/.cache/musyc/audio/`）及通过 `d` 下载的文件，均须在 **24 小时内删除**；
   禁止传播、上传、出售或用于商业用途。
 - 本项目与各音源平台无任何隶属或背书关系；因使用本软件产生的版权纠纷由使用者自行承担。
 - 若权利人认为本项目侵犯其权益，请通过 GitHub Issues 联系，我们会及时处理。

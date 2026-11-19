@@ -11,8 +11,8 @@ pub mod ui;
 
 use std::time::Duration;
 
-use musicyi_core::Paths;
-use musicyi_core::config::Config;
+use musyc_core::Paths;
+use musyc_core::config::Config;
 use ratatui::crossterm::event as ct;
 
 pub use app::App;
@@ -25,7 +25,7 @@ pub async fn run(cfg: Config, paths: Paths, initial: Option<String>) -> std::io:
 
     let tx = app.sender();
     std::thread::Builder::new()
-        .name("musicyi-input".into())
+        .name("musyc-input".into())
         .spawn(move || {
             loop {
                 match ct::read() {

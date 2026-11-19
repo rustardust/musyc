@@ -154,7 +154,7 @@ pub fn write_meta(
     title: Option<&str>,
     artists: &[String],
     album: Option<&str>,
-) -> musicyi_core::Result<()> {
+) -> musyc_core::Result<()> {
     write_meta_full(path, title, artists, album, None, None)
 }
 
@@ -166,16 +166,16 @@ pub fn write_meta_full(
     album: Option<&str>,
     lyrics: Option<&str>,
     cover: Option<&[u8]>,
-) -> musicyi_core::Result<()> {
+) -> musyc_core::Result<()> {
     let mut tagged = read_from_path(path)
-        .map_err(|e| musicyi_core::Error::Storage(format!("读取标签失败: {e}")))?;
+        .map_err(|e| musyc_core::Error::Storage(format!("读取标签失败: {e}")))?;
     if tagged.primary_tag_mut().is_none() {
         let tag_type = tagged.primary_tag_type();
         tagged.insert_tag(Tag::new(tag_type));
     }
     let tag = tagged
         .primary_tag_mut()
-        .ok_or_else(|| musicyi_core::Error::Storage("文件不支持写入标签".into()))?;
+        .ok_or_else(|| musyc_core::Error::Storage("文件不支持写入标签".into()))?;
     if let Some(title) = title.map(str::trim).filter(|s| !s.is_empty()) {
         tag.set_title(title.to_string());
     }
@@ -214,7 +214,7 @@ pub fn write_meta_full(
     }
     tagged
         .save_to_path(path, WriteOptions::default())
-        .map_err(|e| musicyi_core::Error::Storage(format!("写入标签失败: {e}")))
+        .map_err(|e| musyc_core::Error::Storage(format!("写入标签失败: {e}")))
 }
 
 fn split_artists(raw: &str) -> Vec<String> {

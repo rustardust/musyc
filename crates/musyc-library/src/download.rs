@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use musicyi_core::{Error, Result};
+use musyc_core::{Error, Result};
 
 /// 下载结果：最终文件路径与字节数。
 #[derive(Debug, Clone)]
@@ -134,7 +134,7 @@ fn unique_path(path: &Path) -> PathBuf {
             return candidate;
         }
     }
-    let ts = musicyi_core::util::now_ts();
+    let ts = musyc_core::util::now_ts();
     let name = if ext.is_empty() {
         format!("{stem}-{ts}")
     } else {

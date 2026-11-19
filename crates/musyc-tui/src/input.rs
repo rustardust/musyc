@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use musicyi_core::util::expand_home;
+use musyc_core::util::expand_home;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Classified {
@@ -201,7 +201,7 @@ mod tests {
     fn nonexistent_path_kept_as_local() {
         assert_eq!(
             classify("~/Music/不存在.mp3"),
-            Classified::Local(musicyi_core::util::expand_home("~/Music/不存在.mp3"))
+            Classified::Local(musyc_core::util::expand_home("~/Music/不存在.mp3"))
         );
     }
 }

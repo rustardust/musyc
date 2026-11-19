@@ -6,12 +6,12 @@ use std::time::{Duration, Instant};
 use ferrous_opencc::OpenCC;
 use ferrous_opencc::config::BuiltinConfig;
 
-use musicyi_api::{ApiClient, IndiePlaylist, RawLyric, Resolver};
-use musicyi_core::config::Config;
-use musicyi_core::lyric::Lyrics;
-use musicyi_core::model::{PlayMode, Playlist, Quality, Song, SourceKind};
-use musicyi_core::{Error, Paths, Result};
-use musicyi_player::{AudioCache, AudioEngine, Cmd, PlayerEvent};
+use musyc_api::{ApiClient, IndiePlaylist, RawLyric, Resolver};
+use musyc_core::config::Config;
+use musyc_core::lyric::Lyrics;
+use musyc_core::model::{PlayMode, Playlist, Quality, Song, SourceKind};
+use musyc_core::{Error, Paths, Result};
+use musyc_player::{AudioCache, AudioEngine, Cmd, PlayerEvent};
 use ratatui::Frame;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::{Constraint, Layout};
@@ -214,7 +214,7 @@ impl App {
         let resolver = Arc::new(Resolver::new(api.clone()));
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
-            .user_agent("Mozilla/5.0 musicyi/0.1")
+            .user_agent("Mozilla/5.0 musyc/0.1")
             .build()
             .map_err(|e| Error::Network(e.to_string()))?;
         let cache = AudioCache::new(paths.audio_cache.clone(), cfg.player.cache_limit_mb);
@@ -1176,7 +1176,7 @@ impl App {
         let duration = if song.duration_ms > 0 {
             song.duration_ms
         } else {
-            musicyi_library::read_meta(&path)
+            musyc_library::read_meta(&path)
                 .map(|m| m.duration_ms)
                 .unwrap_or(0)
         };
@@ -1495,7 +1495,7 @@ impl App {
         song: &Song,
     ) -> Option<String> {
         match song.source {
-            SourceKind::Local => musicyi_library::read_lyrics(Path::new(&song.id)),
+            SourceKind::Local => musyc_library::read_lyrics(Path::new(&song.id)),
             SourceKind::Indie => {
                 let url = song.lyric_url.clone()?;
                 let resp = http.get(url).send().await.ok()?;
@@ -1523,7 +1523,7 @@ impl App {
         self.lyrics_scroll = 0;
         match song.source {
             SourceKind::Local => {
-                if let Some(text) = musicyi_library::read_lyrics(Path::new(&song.id)) {
+                if let Some(text) = musyc_library::read_lyrics(Path::new(&song.id)) {
                     self.lyrics = Lyrics::parse(&text, "");
                 }
             }
@@ -1597,7 +1597,7 @@ impl App {
         let local_path = (song.source == SourceKind::Local).then(|| PathBuf::from(&song.id));
         tokio::spawn(async move {
             let bytes = if let Some(path) = local_path {
-                tokio::task::spawn_blocking(move || musicyi_library::read_cover(&path))
+                tokio::task::spawn_blocking(move || musyc_library::read_cover(&path))
                     .await
                     .ok()
                     .flatten()
@@ -1674,12 +1674,12 @@ impl App {
         };
         tokio::spawn(async move {
             let old_id = song.id.clone();
-            let (hint_artist, hint_title) = musicyi_library::filename_hint(&origin);
+            let (hint_artist, hint_title) = musyc_library::filename_hint(&origin);
             let title = hint_title
                 .clone()
                 .filter(|s| !s.trim().is_empty())
-                .map(|t| musicyi_library::clean_match_title(&t))
-                .unwrap_or_else(|| musicyi_library::clean_match_title(&song.name));
+                .map(|t| musyc_library::clean_match_title(&t))
+                .unwrap_or_else(|| musyc_library::clean_match_title(&song.name));
             let artist = hint_artist
                 .clone()
                 .or_else(|| song.artists.first().cloned())
@@ -1692,7 +1692,7 @@ impl App {
 
             let hint_title_clean = hint_title
                 .as_deref()
-                .map(musicyi_library::clean_match_title);
+                .map(musyc_library::clean_match_title);
             let updated = match resolve_and_convert(
                 ConvertClients {
                     api: &api,
@@ -1790,12 +1790,12 @@ impl App {
             let mut consecutive = 0u32;
             for (index, song) in pending.iter().enumerate() {
                 let origin = local_origin(song);
-                let (hint_artist, hint_title) = musicyi_library::filename_hint(&origin);
+                let (hint_artist, hint_title) = musyc_library::filename_hint(&origin);
                 let title = hint_title
                     .clone()
                     .filter(|s| !s.trim().is_empty())
-                    .map(|t| musicyi_library::clean_match_title(&t))
-                    .unwrap_or_else(|| musicyi_library::clean_match_title(&song.name));
+                    .map(|t| musyc_library::clean_match_title(&t))
+                    .unwrap_or_else(|| musyc_library::clean_match_title(&song.name));
                 let artist = hint_artist
                     .clone()
                     .or_else(|| song.artists.first().cloned())
@@ -1809,7 +1809,7 @@ impl App {
                 let mut wrote = false;
                 let hint_title_clean = hint_title
                     .as_deref()
-                    .map(musicyi_library::clean_match_title);
+                    .map(musyc_library::clean_match_title);
                 match resolve_and_convert(
                     ConvertClients {
                         api: &api,
@@ -1927,8 +1927,8 @@ impl App {
             };
             // 先用来源自带的正确标签（雀乐 / 街声 / 网易云元数据），
             // 歌词和封面则在源库里查不到时回退外部库，与标签补全同一套流程。
-            let artist = musicyi_library::sanitize(&song.artist_text());
-            let title = musicyi_library::sanitize(&song.name);
+            let artist = musyc_library::sanitize(&song.artist_text());
+            let title = musyc_library::sanitize(&song.name);
             let ext: String = source
                 .format
                 .chars()
@@ -1944,7 +1944,7 @@ impl App {
             let tx_progress = tx.clone();
             let mut last_pct = i32::MIN;
             let result =
-                musicyi_library::download_to(&http, &source.url, &dest, move |done, total| {
+                musyc_library::download_to(&http, &source.url, &dest, move |done, total| {
                     let pct = total
                         .filter(|t| *t > 0)
                         .map(|t| (done.saturating_mul(100) / t) as i32)
@@ -2039,7 +2039,7 @@ impl App {
 
         let title_opt = (!title.is_empty()).then_some(title.as_str());
         let album_opt = (!album.is_empty()).then_some(album.as_str());
-        match musicyi_library::write_meta_full(
+        match musyc_library::write_meta_full(
             path,
             title_opt,
             &artists,
@@ -3154,13 +3154,13 @@ async fn prepare_fallback(
     hint_title: Option<&str>,
 ) -> std::result::Result<FallbackParts, String> {
     let origin = local_origin(local);
-    let (file_artist, file_title) = musicyi_library::filename_hint(&origin);
+    let (file_artist, file_title) = musyc_library::filename_hint(&origin);
     let title = hint_title
         .map(str::to_string)
         .or(file_title)
-        .map(|s| musicyi_library::clean_match_title(s.trim()))
+        .map(|s| musyc_library::clean_match_title(s.trim()))
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| musicyi_library::clean_match_title(&local.name));
+        .unwrap_or_else(|| musyc_library::clean_match_title(&local.name));
     let artist = hint_artist
         .map(str::to_string)
         .or(file_artist)
@@ -3294,7 +3294,7 @@ async fn write_converted(
         let temp = dest_io.with_extension(format!("part.{ext}"));
         let _ = std::fs::remove_file(&temp);
         std::fs::copy(&origin_io, &temp).map_err(|e| format!("复制文件失败：{e}"))?;
-        if let Err(e) = musicyi_library::write_meta_full(
+        if let Err(e) = musyc_library::write_meta_full(
             &temp,
             Some(&title_io),
             &artists_io,
@@ -3350,8 +3350,8 @@ fn local_song_at(
     title: Option<String>,
     duration_ms: u64,
 ) -> Song {
-    let meta = musicyi_library::read_meta(play_path);
-    let (file_artist, file_title) = musicyi_library::filename_hint(origin_path);
+    let meta = musyc_library::read_meta(play_path);
+    let (file_artist, file_title) = musyc_library::filename_hint(origin_path);
     let converted = play_path != origin_path;
     let album = if converted {
         meta.as_ref()
@@ -3426,7 +3426,7 @@ fn local_song_at(
 /// 本地文件经常把歌手、专辑、标题三个字段整组错位。若标签呈现典型轮换
 /// （title=歌手 或 album=歌手），把标签里的 artist 字段当作真正的专辑。
 fn display_album(
-    meta: &musicyi_library::EmbeddedMeta,
+    meta: &musyc_library::EmbeddedMeta,
     hint_artist: Option<&str>,
     hint_title: Option<&str>,
 ) -> String {
@@ -3480,7 +3480,7 @@ fn scan_local_dir(dir: &Path, output_dir: &Path) -> std::result::Result<LocalSca
         };
         let song = local_song_at(play, path, None, 0);
         let needs_tag = play == path
-            || musicyi_library::read_meta(play)
+            || musyc_library::read_meta(play)
                 .is_none_or(|m| m.title.as_deref().is_none_or(|t| t.trim().is_empty()));
         if needs_tag {
             // 还没有转换副本的文件，也列入批量补全范围。

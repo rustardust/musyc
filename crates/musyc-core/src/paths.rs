@@ -5,10 +5,10 @@ use crate::error::{Error, Result};
 /// 全部可写路径的集中约定。
 ///
 /// 默认遵循 XDG：
-/// - 配置 `~/.config/musicyi/config.toml`
-/// - 数据 `~/.local/share/musicyi/`
-/// - 缓存 `~/.cache/musicyi/`
-/// - 日志 `~/.local/state/musicyi/logs/`
+/// - 配置 `~/.config/musyc/config.toml`
+/// - 数据 `~/.local/share/musyc/`
+/// - 缓存 `~/.cache/musyc/`
+/// - 日志 `~/.local/state/musyc/logs/`
 ///
 /// 设置 `MUSICYI_ROOT` 后全部收拢到该目录下，便于做便携包与测试。
 #[derive(Debug, Clone)]
@@ -44,17 +44,17 @@ impl Paths {
 
         let config_dir = dirs::config_dir()
             .ok_or_else(|| Error::Path("找不到用户配置目录".into()))?
-            .join("musicyi");
+            .join("musyc");
         let data_dir = dirs::data_dir()
             .ok_or_else(|| Error::Path("找不到用户数据目录".into()))?
-            .join("musicyi");
+            .join("musyc");
         let cache_dir = dirs::cache_dir()
             .ok_or_else(|| Error::Path("找不到用户缓存目录".into()))?
-            .join("musicyi");
+            .join("musyc");
         let log_dir = dirs::state_dir()
             .or_else(dirs::data_dir)
             .ok_or_else(|| Error::Path("找不到用户状态目录".into()))?
-            .join("musicyi/logs");
+            .join("musyc/logs");
 
         Ok(Self {
             root: data_dir.clone(),

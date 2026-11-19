@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# musicyi 安装脚本：构建 release 并安装到 ~/.local/bin（可用 PREFIX 覆盖）。
+# musyc 安装脚本：构建 release 并安装到 ~/.local/bin（可用 PREFIX 覆盖）。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${PREFIX:-$HOME/.local/bin}"
-BIN="$ROOT/target/release/musicyi"
+BIN="$ROOT/target/release/musyc"
 
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m警告:\033[0m %s\n' "$*" >&2; }
@@ -18,20 +18,20 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   PREFIX   安装前缀目录，默认 \$HOME/.local/bin
 
 说明:
-  - 从源码构建 release 版本并安装 musicyi 可执行文件
-  - 不会覆盖或删除 ~/.config/musicyi 与 ~/.local/share/musicyi 中的数据
+  - 从源码构建 release 版本并安装 musyc 可执行文件
+  - 不会覆盖或删除 ~/.config/musyc 与 ~/.local/share/musyc 中的数据
   - --uninstall 只删除已安装的可执行文件，配置与数据需手动清理
 EOF
     exit 0
 fi
 
 if [[ "${1:-}" == "--uninstall" ]]; then
-    if [[ -e "$PREFIX/musicyi" ]]; then
-        rm -f "$PREFIX/musicyi"
-        info "已删除 $PREFIX/musicyi"
-        info "配置与数据仍保留：~/.config/musicyi、~/.local/share/musicyi"
+    if [[ -e "$PREFIX/musyc" ]]; then
+        rm -f "$PREFIX/musyc"
+        info "已删除 $PREFIX/musyc"
+        info "配置与数据仍保留：~/.config/musyc、~/.local/share/musyc"
     else
-        info "$PREFIX/musicyi 不存在，无需卸载"
+        info "$PREFIX/musyc 不存在，无需卸载"
     fi
     exit 0
 fi
@@ -51,11 +51,11 @@ cargo build --release
 
 [[ -x "$BIN" ]] || die "构建完成但未找到 $BIN"
 
-info "安装到 $PREFIX/musicyi"
+info "安装到 $PREFIX/musyc"
 mkdir -p "$PREFIX"
-install -Dm755 "$BIN" "$PREFIX/musicyi"
+install -Dm755 "$BIN" "$PREFIX/musyc"
 
-info "完成。运行：musicyi"
+info "完成。运行：musyc"
 case ":$PATH:" in
     *":$PREFIX:"*) ;;
     *) warn "$PREFIX 不在 PATH 中，请把它加入 PATH 后重新打开终端" ;;

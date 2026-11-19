@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use musicyi_api::{IndiePlaylist, RawLyric};
-use musicyi_core::model::{Playlist, Song};
-use musicyi_player::PlayerEvent;
+use musyc_api::{IndiePlaylist, RawLyric};
+use musyc_core::model::{Playlist, Song};
+use musyc_player::PlayerEvent;
 use ratatui::crossterm::event::KeyEvent;
 
 use crate::types::{Action, CoverArt};

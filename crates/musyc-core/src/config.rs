@@ -76,13 +76,13 @@ impl Default for UiConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DownloadConfig {
-    /// 下载目录；留空使用 `~/Music/musicyi`。
+    /// 下载目录；留空使用 `~/Music/musyc`。
     pub dir: String,
 }
 
 impl DownloadConfig {
     pub fn resolved_dir(&self) -> std::path::PathBuf {
-        resolve_dir(&self.dir, "musicyi")
+        resolve_dir(&self.dir, "musyc")
     }
 }
 
@@ -92,7 +92,7 @@ impl DownloadConfig {
 pub struct LocalConfig {
     /// 扫描目录；留空使用 `~/Music/playlist`。
     pub dir: String,
-    /// 补全标签时生成的副本目录；留空使用 `~/Music/musicyi/local`。
+    /// 补全标签时生成的副本目录；留空使用 `~/Music/musyc/local`。
     pub output_dir: String,
     /// 批量补全时每个请求之间的间隔（毫秒），避免触发网易云风控。
     pub tag_delay_ms: u64,
@@ -114,7 +114,7 @@ impl LocalConfig {
     }
 
     pub fn resolved_output_dir(&self) -> std::path::PathBuf {
-        resolve_dir(&self.output_dir, "musicyi/local")
+        resolve_dir(&self.output_dir, "musyc/local")
     }
 }
 
@@ -154,7 +154,7 @@ impl Config {
         Paths::ensure_parent(path)?;
         let body = toml::to_string_pretty(self)
             .map_err(|e| Error::Config(format!("序列化配置失败: {e}")))?;
-        let header = "# musicyi 配置\n# 修改后重启生效。\n\n";
+        let header = "# musyc 配置\n# 修改后重启生效。\n\n";
         std::fs::write(path, format!("{header}{body}"))
             .map_err(|e| Error::Config(format!("写入 {path:?} 失败: {e}")))
     }

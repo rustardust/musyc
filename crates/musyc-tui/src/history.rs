@@ -6,8 +6,8 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::path::Path;
 
-use musicyi_core::model::Song;
-use musicyi_core::util::now_ts;
+use musyc_core::model::Song;
+use musyc_core::util::now_ts;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -91,7 +91,7 @@ pub fn recent(path: &Path, limit: usize) -> Vec<Song> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use musicyi_core::model::SourceKind;
+    use musyc_core::model::SourceKind;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -101,7 +101,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "musicyi-history-{}-{tag}-{nanos}.jsonl",
+            "musyc-history-{}-{tag}-{nanos}.jsonl",
             std::process::id()
         ))
     }
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn missing_file_is_empty() {
-        assert!(recent(Path::new("/tmp/musicyi-no-such-history-file"), 20).is_empty());
+        assert!(recent(Path::new("/tmp/musyc-no-such-history-file"), 20).is_empty());
     }
 
     #[test]

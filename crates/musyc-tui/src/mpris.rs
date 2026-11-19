@@ -66,7 +66,7 @@ pub enum MprisCmd {
 #[cfg(target_os = "linux")]
 pub fn spawn(tx: UnboundedSender<Event>) -> Option<UnboundedSender<MprisCmd>> {
     let (cmd_tx, cmd_rx) = tokio::sync::mpsc::unbounded_channel();
-    let builder = std::thread::Builder::new().name("musicyi-mpris".into());
+    let builder = std::thread::Builder::new().name("musyc-mpris".into());
     let handle = builder.spawn(move || {
         let runtime = match tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -98,9 +98,9 @@ pub fn spawn(_tx: UnboundedSender<Event>) -> Option<UnboundedSender<MprisCmd>> {
 
 #[cfg(target_os = "linux")]
 async fn run(tx: UnboundedSender<Event>, mut cmd_rx: UnboundedReceiver<MprisCmd>) {
-    let player = match Player::builder("musicyi")
-        .identity("musicyi")
-        .desktop_entry("musicyi")
+    let player = match Player::builder("musyc")
+        .identity("musyc")
+        .desktop_entry("musyc")
         .can_quit(false)
         .can_raise(false)
         .can_play(true)
@@ -150,9 +150,9 @@ async fn run(tx: UnboundedSender<Event>, mut cmd_rx: UnboundedReceiver<MprisCmd>
     let tx_loop = tx.clone();
     player.connect_set_loop_status(move |_, status| {
         let mode = match status {
-            LoopStatus::None => musicyi_core::model::PlayMode::Sequential,
-            LoopStatus::Track => musicyi_core::model::PlayMode::Single,
-            LoopStatus::Playlist => musicyi_core::model::PlayMode::ListLoop,
+            LoopStatus::None => musyc_core::model::PlayMode::Sequential,
+            LoopStatus::Track => musyc_core::model::PlayMode::Single,
+            LoopStatus::Playlist => musyc_core::model::PlayMode::ListLoop,
         };
         let _ = tx_loop.send(Event::Action(Action::SetMode(mode)));
     });
@@ -200,7 +200,7 @@ fn metadata_for(state: &MprisState) -> Metadata {
     state.title.hash(&mut hasher);
     state.album.hash(&mut hasher);
     state.artists.hash(&mut hasher);
-    let path = format!("/com/musicyi/track/{:016x}", hasher.finish());
+    let path = format!("/com/musyc/track/{:016x}", hasher.finish());
     let track = TrackId::try_from(path.as_str()).unwrap_or(TrackId::NO_TRACK);
 
     let mut builder = Metadata::builder()

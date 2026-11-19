@@ -46,7 +46,7 @@ impl AudioEngine {
         let (cmd_tx, cmd_rx) = mpsc::channel();
         let (ev_tx, event_rx) = mpsc::channel();
         thread::Builder::new()
-            .name("musicyi-audio".into())
+            .name("musyc-audio".into())
             .spawn(move || run(cmd_rx, ev_tx, volume))
             .expect("spawn audio thread");
         Self { cmd_tx, event_rx }
