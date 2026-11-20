@@ -219,7 +219,10 @@ pub fn render_songs(
     // 标题行的 ‹ 与下方数字序号右对齐（idx_w：条目数位数，至少 2 列）。
     let idx_w = songs.len().to_string().len().max(2);
     let (heading_area, inner) = list_split(area);
-    frame.render_widget(Paragraph::new(heading_line(&title, idx_w, theme)), heading_area);
+    frame.render_widget(
+        Paragraph::new(heading_line(&title, idx_w, theme)),
+        heading_area,
+    );
 
     if let Some(err) = error
         && songs.is_empty()

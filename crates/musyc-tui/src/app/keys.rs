@@ -106,7 +106,11 @@ impl App {
                 if self.lyrics_immersive {
                     self.show_lyrics = true;
                 }
-                self.toast(if self.lyrics_immersive { "纯享开" } else { "纯享关" });
+                self.toast(if self.lyrics_immersive {
+                    "纯享开"
+                } else {
+                    "纯享关"
+                });
             }
             KeyCode::Char('R') => self.refresh_current(),
             KeyCode::Char('t') => self.tag_selected(),

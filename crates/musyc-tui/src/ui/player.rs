@@ -81,18 +81,26 @@ pub fn render_player(
         let max_content = available * 6 / 10; // 60%宽度上限
         let artist = current.map(|song| song.artist_text()).unwrap_or_default();
         let artist_width = UnicodeWidthStr::width(artist.as_str());
-        // 歌手最多占一半内容宽度，保证歌名不会被挤到比歌手短（用户反馈两者应等长）。
-        let half = max_content.saturating_sub(1) / 2;
-        let artist_part = artist_width.min(22).min(half);
-        // 歌名预算 = 内容上限 - 歌手 - 中间空格，下限 4；全部按显示宽度（CJK 计 2 列）。
-        let title_budget = max_content
-            .saturating_sub(artist_part)
-            .saturating_sub(1)
-            .max(4);
-        let title_text = match current {
-            Some(song) => truncate_width(&song.name, title_budget),
+        let raw_title = match current {
+            Some(song) => song.name.clone(),
             None => "未选择歌曲".to_string(),
         };
+        let title_width_raw = UnicodeWidthStr::width(raw_title.as_str());
+        // 按实际文字长度分配：能放全就放全；超出 60% 时给短的一方完整显示，
+        // 长的一方吃掉剩余预算；两边都长则各占一半（歌名不会比歌手短）。
+        let budget = max_content
+            .saturating_sub(if artist.is_empty() { 0 } else { 1 })
+            .max(4);
+        let (title_budget, artist_part) = if title_width_raw + artist_width <= budget {
+            (title_width_raw, artist_width)
+        } else if artist_width <= budget / 2 {
+            (budget - artist_width, artist_width)
+        } else if title_width_raw <= budget / 2 {
+            (title_width_raw, budget - title_width_raw)
+        } else {
+            (budget / 2, budget - budget / 2)
+        };
+        let title_text = truncate_width(&raw_title, title_budget.max(1));
         let title_style = match current {
             Some(_) => Style::default()
                 .fg(theme.bender)

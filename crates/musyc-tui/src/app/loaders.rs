@@ -472,7 +472,7 @@ impl App {
     pub(super) fn open_m3u(&mut self, path: PathBuf) {
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
-            Err(e) => {
+            Err(_) => {
                 self.toast("读取歌单失败");
                 return;
             }
@@ -543,12 +543,11 @@ impl App {
         });
     }
 
-    pub(super) fn adopt_queue(&mut self, title: String, songs: Vec<Song>) {
+    pub(super) fn adopt_queue(&mut self, _title: String, songs: Vec<Song>) {
         if songs.is_empty() {
             self.toast("列表为空");
             return;
         }
-        let count = songs.len();
         self.queue = songs;
         self.remember_selection();
         self.search_seq += 1;
@@ -741,7 +740,7 @@ impl App {
         let log_dir = self.paths.log_dir.clone();
         let web = match fallback::external_client() {
             Ok(client) => client,
-            Err(e) => {
+            Err(_) => {
                 self.tagging = false;
                 self.tag_progress = None;
                 self.toast("客户端失败");
@@ -846,7 +845,7 @@ impl App {
         let log_dir = self.paths.log_dir.clone();
         let web = match fallback::external_client() {
             Ok(client) => client,
-            Err(e) => {
+            Err(_) => {
                 self.tagging = false;
                 self.tag_progress = None;
                 self.toast("客户端失败");

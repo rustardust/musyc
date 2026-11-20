@@ -195,9 +195,7 @@ impl App {
     }
 
     /// 播放失败时自动跳到下一首；连续失败达到队列长度或 8 首后停止。
-    /// 播放失败时自动跳到下一首；连续失败达到队列长度或 8 首后停止。
-    pub(super) fn skip_unplayable(&mut self, message: impl Into<String>) {
-        let message = message.into();
+    pub(super) fn skip_unplayable(&mut self, _message: impl Into<String>) {
         self.failed_streak += 1;
         self.loading_play = false;
         self.loaded = false;

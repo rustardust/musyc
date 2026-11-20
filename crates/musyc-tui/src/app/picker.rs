@@ -25,15 +25,6 @@ impl App {
             .unwrap_or_else(|| id.to_string())
     }
 
-    pub(super) fn slot_label(&self, slot: usize) -> &'static str {
-        match slot {
-            0 => "第一个入口",
-            1 => "第二个入口",
-            2 => "第三个入口",
-            _ => "入口",
-        }
-    }
-
     /// 首页五个入口的显示名（前三个是自定义/内置绑定，后两个固定）。
     /// 首页五个入口的显示名（前三个是自定义/内置绑定，后两个固定）。
     pub(super) fn home_labels(&self) -> [String; 5] {
@@ -140,7 +131,7 @@ impl App {
         entries[slot] = item.id.clone();
         self.cfg.home.entries = entries;
         // 持久化
-        if let Err(e) = self.cfg.save(&self.paths.config_file) {
+        if self.cfg.save(&self.paths.config_file).is_err() {
             self.toast("保存失败");
         }
         // 使该槽位失效并重新拉取

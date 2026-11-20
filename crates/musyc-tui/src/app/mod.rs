@@ -458,7 +458,7 @@ impl App {
                 match result {
                     Ok(songs) if !songs.is_empty() => self.adopt_queue(title, songs),
                     Ok(_) => self.toast("无可播放"),
-                    Err(e) => self.toast("打开失败"),
+                    Err(_) => self.toast("打开失败"),
                 }
             }
             Event::HomeSlot { seq, slot, result } => {
@@ -656,7 +656,7 @@ impl App {
                     self.tag_progress = Some((done, total, name));
                 }
             }
-            Event::TagDone { seq, fixed, failed } => {
+            Event::TagDone { seq, .. } => {
                 if seq != self.tag_seq {
                     return;
                 }
@@ -754,12 +754,7 @@ impl App {
                 }
                 self.download_progress = Some((done, total));
             }
-            Event::DownloadDone {
-                seq,
-                path,
-                bytes,
-                tagged,
-            } => {
+            Event::DownloadDone { seq, .. } => {
                 if seq != self.download_seq {
                     return;
                 }
@@ -767,7 +762,7 @@ impl App {
                 self.download_progress = None;
                 self.toast("下载完成");
             }
-            Event::DownloadFailed { seq, message } => {
+            Event::DownloadFailed { seq, .. } => {
                 if seq != self.download_seq {
                     return;
                 }
@@ -808,7 +803,11 @@ impl App {
                     self.dur_ms = dur_ms;
                     // 播放器拿到了真实时长：回写到当前歌曲和所有包含它的列表，
                     // 让列表里原本显示 --:-- 的时长变成实际值。
-                    if self.current.as_ref().is_some_and(|song| song.duration_ms == 0) {
+                    if self
+                        .current
+                        .as_ref()
+                        .is_some_and(|song| song.duration_ms == 0)
+                    {
                         let key = self.current.as_ref().map(|s| s.key());
                         if let Some(key) = key {
                             self.patch_song(&key, Some(dur_ms), None);
@@ -1821,15 +1820,6 @@ fn next_boundary(text: &str, cursor: usize) -> usize {
         .next()
         .map(|c| cursor + c.len_utf8())
         .unwrap_or(text.len())
-}
-
-fn human_bytes(bytes: u64) -> String {
-    const MB: f64 = 1024.0 * 1024.0;
-    if bytes as f64 >= MB {
-        format!("{:.1} MB", bytes as f64 / MB)
-    } else {
-        format!("{:.0} KB", bytes as f64 / 1024.0)
-    }
 }
 
 #[cfg(test)]

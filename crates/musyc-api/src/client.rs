@@ -283,7 +283,10 @@ impl ApiClient {
     /// 旧版播放链路（br 参数），作为 v1 被风控时的兜底。
     async fn song_url_legacy(&self, id: &str) -> Result<Option<SongUrl>> {
         let v = self
-            .get("song/url", vec![("id", id.to_string()), ("br", "999000".into())])
+            .get(
+                "song/url",
+                vec![("id", id.to_string()), ("br", "999000".into())],
+            )
             .await?;
         let Some(item) = v
             .get("data")
