@@ -4,207 +4,78 @@
 [![Release](https://img.shields.io/github/v/release/rustardust/musyc)](https://github.com/rustardust/musyc/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 
-终端里的多来源音乐播放器。单一首页五个入口（网易原创 / 街声推荐 / 雀乐推荐 / 本地列表 / 最近播放），`Esc` 逐级返回并停在上次位置，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox)。
+> 基于歌单的终端音乐盒。
 
 ![musyc 首页](docs/screenshot.png)
 
-| 歌词纯享 | 雀乐推荐列表 |
+| 歌词纯享 | 雀乐推荐 |
 | --- | --- |
-| ![歌词纯享](docs/screenshot-lyrics.png) | ![雀乐推荐列表](docs/screenshot-indie.png) |
+| ![歌词纯享](docs/screenshot-lyrics.png) | ![雀乐推荐](docs/screenshot-indie.png) |
+
+## 设计理念
+
+**歌单，而不是曲库。** musyc 不试图做一个「什么都能搜到」的音乐平台。首页就是几张歌单：三个在线槽位，一个本地槽位。选一张，听下去。
+
+**歌单可插拔。** 首页前三个在线入口不是写死的。光标停在入口上按 `s`，就能换成任意已加载的源——内置的网易原创、街声推荐、雀乐推荐，或自己写的 TOML 源。第四位固定为本地列表，第五位是最近播放。
+
+**无登录，无解灰。** 不登录任何账号，不接第三方「解灰」音源。网易云只走官方直链与官方 30 秒试听；拿不到就跳过，不绕路。
+
+**不执着于会员歌曲。** 除了会员曲库，还有太多新歌值得被发现。会员歌听不到就不听，把注意力留给那些可以自由获取的声音。
+
+**极简主义。** 单一首页、五个入口、一个列表。`Esc` 逐级返回，并停在上次的位置；没有多层侧栏，没有冗余面板。
 
 ## 功能
 
-- **网易云**：只用官方直链与官方 30 秒试听，不经过任何解灰音源；无法播放自动跳过。
-  保留单曲搜索、网易云歌单搜索与链接 / ID / M3U 打开。
-- **街声 / 雀乐**：本机 API 转发（街声 HLS → MP3；雀乐直接取 CDN MP3），含歌词。
-- **本地音乐**：递归扫描目录，文件名 `歌手 - 标题.mp3` 作为主线索；`t` / `T` 转换选中 / 批量转换，
-  先查网易云，未命中自动回退 MusicBrainz（元数据 / 封面）与 LRCLIB（歌词），
-  繁体曲名先经 OpenCC 转简再匹配，全部失败写入 `tag-failures.log`。
-  **转换副本写到独立输出目录，原始文件始终不动**。
-- **歌词**：默认关闭，`l` 开 / 关；LRC 自动滚动，也支持雀乐 / 街声的纯文本歌词按宽度换行。
-  `v` 进入歌词纯享（歌词铺满内容区）。
-- **播放**：`Space` 暂停，`]` / `[` 切歌，`←` / `→` 快进退 5 秒，四种播放模式，
-  进度 seek，音量记忆，退出保存队列与进度（下次启动暂停在原位置）。
-- **下载**：`d` 下载选中歌曲到 `[download] dir`（默认 `~/Music/musyc`），
-  文件名为 `歌手 - 标题.扩展名`，同名自动追加序号；下载后自动写入标题 / 歌手 / 专辑、
-  歌词（USLT）与封面（Front Cover），一次只下载一首。
-- **MPRIS**：媒体键 / `playerctl` / 桌面媒体控件（仅 Linux）。
+- **五个入口**：网易原创 / 街声推荐 / 雀乐推荐 / 本地列表 / 最近播放，一屏直达。
+- **网易云**：官方直链播放，官方 30 秒试听；支持单曲搜索、歌单搜索、链接 / ID / M3U 打开。无法播放自动跳过。
+- **街声 / 雀乐**：经本机 API 转发（街声 HLS → MP3，雀乐直接取 CDN MP3），带歌词。
+- **本地音乐**：递归扫描目录，按 `歌手 - 标题` 识别；`t` 转换选中、`T` 批量补全，先查网易云，再回退 MusicBrainz 与 LRCLIB，繁体先转简再匹配。**转换副本写入独立目录，原始文件不动**。
+- **歌词**：默认关闭，`l` 开关；LRC 自动滚动，纯文本歌词按宽度换行；`v` 进入歌词纯享。
+- **播放**：四种播放模式，进度 seek，音量记忆，退出保存队列与进度，下次启动停在原位置。
+- **下载**：`d` 下载选中歌曲，自动写入标题 / 歌手 / 专辑 / 歌词 / 封面。
+- **换源**：首页三个在线槽位可任意改绑，配置持久化。
+- **MPRIS**：媒体键、`playerctl`、桌面媒体控件（Linux）。
 
-## 环境要求
-
-- Linux（PipeWire 或 PulseAudio）
-- Rust 1.88+
-- Node.js 18+（本机网易云 API）
-- `ffmpeg`（街声 HLS 转 MP3，需在 `PATH` 中）
-- 编译依赖：Fedora `alsa-lib-devel pkg-config`；Debian / Ubuntu `libasound2-dev pkg-config`
-
-## 快速开始
-
-```bash
-git clone https://github.com/rustardust/musyc.git
-cd musyc
-./install.sh                    # 构建 release 并安装到 ~/.local/bin
-
-cd api-server && npm ci && cd ..
-./api-server/start.sh           # 启动本机 API（默认 127.0.0.1:3000）
-musyc
-```
-
-关闭 API：`./api-server/stop.sh`。
-
-## 基本用法
-
-```bash
-musyc                                  # 首页
-musyc "关键词"                          # 搜索单曲
-musyc "https://music.163.com/#/song?id=1858110236"
-musyc "https://music.163.com/#/playlist?id=3778678"
-musyc ~/Music/list.m3u                 # 打开 M3U（可含路径 / 链接 / ID）
-musyc ~/Music/song.flac                # 播放本地文件
-```
-
-首页 `Enter` 进入栏目，再 `Enter` 播放，`Esc` 返回。搜索 / 歌单 / 打开分别按 `/`、`f`、`o`，
-输入框内 `Enter` 确认，`Esc` 放弃。首页前三个在线入口默认是「网易原创 / 街声推荐 / 雀乐推荐」，
-在首页光标停在任意一个入口上按 `s` 可改绑成任意已加载的源（见「换源」）。
-
-## 快捷键
+### 快捷键
 
 | 按键 | 作用 |
 | --- | --- |
 | `j` / `k`、`↓` / `↑` | 上下移动 |
-| `g` / `G` | 跳到列表首 / 尾 |
-| `Enter` | 打开栏目 / 播放选中歌曲 / 确认输入 |
-| `Esc` | 收起输入 / 返回上一级 / 回到首页 |
-| `/` / `f` / `o` | 单曲搜索 / 歌单搜索 / 打开路径·链接·ID·M3U |
+| `g` / `G` | 列表首 / 尾 |
+| `Enter` | 进入 / 播放 |
+| `Esc` | 返回上一级 / 回首页 |
+| `/` `f` `o` | 单曲搜索 / 歌单搜索 / 打开路径·链接·ID·M3U |
 | `Space` | 播放 / 暂停 |
 | `]` / `[` | 下一首 / 上一首 |
 | `←` / `→` | 快退 / 快进 5 秒 |
-| `+` / `-` | 音量加 / 减 |
-| `r` | 切换播放模式（列表循环 / 单曲 / 随机 / 顺序） |
-| `l` | 歌词开 / 关（默认关） |
-| `v` | 歌词纯享（进入强制开歌词） |
+| `+` / `-` | 音量 |
+| `r` | 播放模式 |
+| `l` / `v` | 歌词开关 / 歌词纯享 |
 | `PageUp` / `PageDown` | 滚动歌词 |
-| `t` / `T` | 转换并补全选中 / 批量补全未转换的本地歌曲 |
-| `x` / `Delete` | 从最近播放删除选中记录 |
-| `d` | 下载选中歌曲（自动写入标题/歌手/专辑/歌词/封面） |
+| `t` / `T` | 转换选中 / 批量补全 |
+| `x` / `Delete` | 删除最近播放记录 |
+| `d` | 下载 |
 | `R` | 刷新当前栏目 |
-| `s` | 换源（首页前三个在线入口，按选中项换绑） |
-| `?` | 打开 / 关闭快捷键帮助 |
-| `q` | 退出（`Ctrl+C` 强制退出） |
+| `s` | 换源 |
+| `?` | 快捷键帮助 |
+| `q` | 退出 |
 
-输入状态下 `Enter` 确认、`Esc` 放弃，其余按键按文本处理。**`F` 跟随开关已移除**：
-自动切歌始终把指针移到正在播放的歌曲。
-
-## 配置
-
-配置文件首次启动自动生成，位于 `~/.config/musyc/config.toml`，常用项：
-
-```toml
-[player]
-quality = "exhigh"   # standard / higher / exhigh / lossless / hires
-volume = 0.8
-mode = "list_loop"   # list_loop / single / shuffle / sequential
-
-[local]
-dir = ""             # 留空用 ~/Music/playlist
-output_dir = ""      # 留空用 ~/Music/musyc/local
-tag_delay_ms = 220   # 批量补全间隔，避免风控
-
-[ui]
-mpris = true
-```
-
-设置 `MUSYC_ROOT` 可把所有可写路径收拢到指定目录，便于便携使用。完整配置项、
-默认路径、`musyc --paths` 输出见 [DEVELOPMENT.md](DEVELOPMENT.md)。
-
-## 换源
-
-首页前三个在线入口可改绑；第 4 位「本地列表」、第 5 位「最近播放」不能换源（提示「不能换源」）。
-
-- 在首页把光标停在前三个入口上，按 `s` 打开选择器；`j` / `k` 移动，`Enter` 确认，`Esc` 放弃。
-- 选择器分两组：内置（网易原创 / 街声推荐 / 雀乐推荐）与自定义（从 `sources/*.toml` 加载）。
-- 选中的绑定按入口写入 `~/.config/musyc/config.toml` 的 `[home] entries`，重启后仍生效。
-- 仓库内置了四个可直接用的自定义源（`sources/`）：网易国风榜、街声 Alternative、
-  Jamendo 创作歌手、FMA This Week；`./install.sh` 会把它们复制到 `~/.local/share/musyc/sources/`。
-- 自己加源：在 `~/.config/musyc/sources/`（或 `$MUSYC_ROOT/sources/`）放一个 TOML，格式见
-  [DEVELOPMENT.md](DEVELOPMENT.md#源配置-sourcestoml)。
-
-配置示例：
-
-```toml
-[home]
-entries = ["netease-guofeng", "streetvoice-alternative", "fma-this-week"]
-```
-
-## 已知限制
-
-- **本地标签补全无法覆盖正版下架 / 仅特定平台有收录**（如诱导社《美好时代》太声文化版、
-  无边界音乐《云南来信》QQ 音乐版）的曲目；这类曲目会写入 `tag-failures.log`，
-  人工补充别名或链接即可。
-- **网易云对英文主标题**（The Faith 最终信仰 / Forgotten River）几乎搜不到；
-  目前依赖内嵌标签里的中文名或保留 `中文 - 英文脚注` 中中文部分兜底。
-- **街声 / 雀乐** 依赖本机 API 转发，源站接口变动会立即失效，需要更新 api-server。
-
-## 常见问题
-
-**启动后显示“API 未连接”**
+## 安装
 
 ```bash
-./api-server/start.sh
-tail -n 50 api-server/server.log
+git clone https://github.com/rustardust/musyc.git
+cd musyc
+./install.sh                 # 构建 release 并安装到 ~/.local/bin
+
+cd api-server && npm ci && cd ..
+./api-server/start.sh        # 本机 API，默认 127.0.0.1:3000
+musyc
 ```
 
-节点首次启动需联网获取匿名 token，稍等几秒。
+需要 Linux（PipeWire / PulseAudio）、Rust 1.88+、Node.js 18+、`ffmpeg` 在 `PATH` 中。编译依赖：Fedora 装 `alsa-lib-devel pkg-config`，Debian / Ubuntu 装 `libasound2-dev pkg-config`。
 
-**接口返回 `-460` 风控错误**
+## 版权
 
-网易拒绝了当前出口 IP，在 `config.toml` 填入可用 IP：
+本软件只是播放器，不拥有、不存储、不分发任何音乐作品。网络音频仅限个人试听：试听缓存与下载文件请在 **24 小时内删除**，禁止传播或商用。因使用本软件产生的版权纠纷由使用者自行承担。
 
-```toml
-[api]
-real_ip = "114.114.114.114"
-```
-
-只随 `song/url/v1`（取播放链接）发送，不影响搜索。
-
-**本地转换没有生成副本**
-
-先确认 API 可用与 `output_dir` 可写（与 `dir` 相同会被拒绝）。失败曲目会追加到
-`<日志目录>/tag-failures.log`，首行即原因，可人工核查。
-
-**M3U 里的本地文件打不开**
-
-确认路径存在、扩展名受 rodio / symphonia 支持（mp3 / flac / m4a / aac / ogg / opus / wav / aiff / alac）。
-
-**歌词为空**
-
-远程歌曲可能没有歌词；翻译取决于接口是否返回。本地歌曲读取转换副本里的内嵌歌词（USLT）。
-
-**想重新开始**
-
-```bash
-rm -rf ~/.cache/musyc/audio \
-       ~/.local/share/musyc/history.jsonl \
-       ~/.local/share/musyc/session.json
-```
-
-下载与转换后的音乐文件不会被删除。
-
-## 版权说明
-
-- 本软件是播放器，不拥有、不存储、不分发任何音乐作品；歌曲、封面、歌词、专辑信息的版权归原权利人所有。
-- **仅限互联网试听**：通过音源平台获取的音频仅用于个人试听；网易云等只能拿到官方 30 秒试听片段，即为正常现象。
-- **24 小时内删除**：试听缓存（`~/.cache/musyc/audio/`）及通过 `d` 下载的文件，均须在 **24 小时内删除**；
-  禁止传播、上传、出售或用于商业用途。
-- 本项目与各音源平台无任何隶属或背书关系；因使用本软件产生的版权纠纷由使用者自行承担。
-- 若权利人认为本项目侵犯其权益，请通过 GitHub Issues 联系，我们会及时处理。
-
-## 许可
-
-版权所有 © 2026 yifedora。本软件以 GPL-3.0-or-later 发布，见 [LICENSE](LICENSE)。
-
-接口能力来自开源项目 [netease-cloud-music-api-alger](https://github.com/algerkong/netease-cloud-music-api)，
-交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox) 与
-[AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer)。
-
-开发者文档（架构 / 目录结构 / api-server / CI / 发布流程 / 完整配置项）见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+版权所有 © 2026 yifedora，以 GPL-3.0-or-later 发布，见 [LICENSE](LICENSE)。接口能力来自 [netease-cloud-music-api-alger](https://github.com/algerkong/netease-cloud-music-api)，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox) 与 [AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer)。
