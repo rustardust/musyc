@@ -446,7 +446,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("搜索失败：{e}"));
+                        self.toast("搜索失败");
                     }
                 }
                 self.ensure_selection();
@@ -457,8 +457,8 @@ impl App {
                 }
                 match result {
                     Ok(songs) if !songs.is_empty() => self.adopt_queue(title, songs),
-                    Ok(_) => self.toast("没有找到可播放的歌曲"),
-                    Err(e) => self.toast(format!("打开失败：{e}")),
+                    Ok(_) => self.toast("无可播放"),
+                    Err(e) => self.toast("打开失败"),
                 }
             }
             Event::HomeSlot { seq, slot, result } => {
@@ -477,10 +477,7 @@ impl App {
                     }
                     Err(e) => {
                         self.slot_error[slot] = Some(e.clone());
-                        self.toast(format!(
-                            "「{}」加载失败：{e}",
-                            self.source_name(&home_entry_id(&self.cfg.home.entries, slot))
-                        ));
+                        self.toast("加载失败");
                     }
                 }
                 self.ensure_selection();
@@ -498,7 +495,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("网易原创榜加载失败：{e}"));
+                        self.toast("加载失败");
                     }
                 }
                 self.ensure_selection();
@@ -520,7 +517,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("搜索歌单失败：{e}"));
+                        self.toast("搜索失败");
                     }
                 }
                 self.ensure_selection();
@@ -546,7 +543,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("打开歌单失败：{e}"));
+                        self.toast("打开失败");
                     }
                 }
                 self.ensure_selection();
@@ -564,7 +561,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("雀乐加载失败：{e}"));
+                        self.toast("加载失败");
                     }
                 }
                 self.ensure_selection();
@@ -582,7 +579,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("街声推荐加载失败：{e}"));
+                        self.toast("加载失败");
                     }
                 }
                 self.ensure_selection();
@@ -601,7 +598,7 @@ impl App {
                     }
                     Err(e) => {
                         self.error = Some(e.clone());
-                        self.toast(format!("本地扫描失败：{e}"));
+                        self.toast("扫描失败");
                     }
                 }
                 self.ensure_selection();
@@ -665,7 +662,7 @@ impl App {
                 }
                 self.tagging = false;
                 self.tag_progress = None;
-                self.toast(format!("批量补全完成：成功 {fixed}，失败 {failed}"));
+                self.toast("补全完成");
                 self.scan_local();
             }
             Event::Lyric { key, raw } => {
@@ -686,9 +683,9 @@ impl App {
                     }
                 }
             }
-            Event::ApiStatus { ok, message } => {
+            Event::ApiStatus { ok, message: _ } => {
                 if !ok {
-                    self.toast(message);
+                    self.toast("接口异常");
                 }
             }
             Event::Resolved {
@@ -768,12 +765,7 @@ impl App {
                 }
                 self.downloading = None;
                 self.download_progress = None;
-                self.toast(format!(
-                    "下载完成（{}）· {}：{}",
-                    human_bytes(bytes),
-                    tagged,
-                    path.display(),
-                ));
+                self.toast("下载完成");
             }
             Event::DownloadFailed { seq, message } => {
                 if seq != self.download_seq {
@@ -781,7 +773,7 @@ impl App {
                 }
                 self.downloading = None;
                 self.download_progress = None;
-                self.toast(format!("下载失败：{message}"));
+                self.toast("下载失败");
             }
             Event::Player(event) => self.on_player(event),
             Event::Action(action) => self.handle_action(action),
@@ -1175,7 +1167,7 @@ impl App {
         }
         self.mpris_cmd = mpris::spawn(self.tx.clone());
         if self.mpris_cmd.is_none() {
-            self.toast("MPRIS 启动失败（请检查 D-Bus session）");
+            self.toast("MPRIS 失败");
         }
         self.mpris_last_sync = Instant::now()
             .checked_sub(Duration::from_secs(5))

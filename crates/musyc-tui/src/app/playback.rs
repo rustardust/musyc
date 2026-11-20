@@ -206,11 +206,11 @@ impl App {
         let limit = self.queue.len().clamp(1, 8) as u32;
         if self.queue.is_empty() || self.failed_streak >= limit {
             self.failed_streak = 0;
-            self.toast(format!("连续播放失败，已停止：{message}"));
+            self.toast("播放失败");
             self.sync_mpris(true);
             return;
         }
-        self.toast(format!("跳过无法播放的歌曲：{message}"));
+        self.toast("跳过失败");
         self.next_song(true);
     }
 
@@ -371,7 +371,7 @@ impl App {
         self.volume = volume.clamp(0.0, 1.5);
         self.cfg.player.volume = self.volume;
         self.engine.send(Cmd::Volume(self.volume));
-        self.toast(format!("音量 {:.0}%", self.volume * 100.0));
+        self.toast("音量");
         self.sync_mpris(true);
     }
 
@@ -382,7 +382,7 @@ impl App {
     pub(super) fn set_mode(&mut self, mode: PlayMode) {
         self.mode = mode;
         self.cfg.player.mode = mode;
-        self.toast(format!("播放模式：{}", mode.label()));
+        self.toast("模式");
         self.sync_mpris(true);
     }
 
@@ -408,7 +408,7 @@ impl App {
     /// 仅当列表展示的是“最近播放”时允许删除。
     pub(super) fn remove_history_selected(&mut self) {
         if self.view != View::Recent || self.search.is_some() {
-            self.toast("只能删除最近播放中的记录");
+            self.toast("只能删");
             return;
         }
         let Some(index) = self.selected_index() else {
@@ -422,9 +422,9 @@ impl App {
             Ok(_) => {
                 self.history = history::recent(&self.paths.history_file, 50);
                 self.ensure_selection();
-                self.toast(format!("已从最近播放移除：{}", song.name));
+                self.toast("已移除");
             }
-            Err(e) => self.toast(format!("删除记录失败：{e}")),
+            Err(_e) => self.toast("删失败"),
         }
     }
 }

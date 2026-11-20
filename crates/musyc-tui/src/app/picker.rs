@@ -61,12 +61,12 @@ impl App {
         let index = match self.list_state.selected() {
             Some(i) => i,
             None => {
-                self.toast("请先在首页选一个在线入口");
+                self.toast("请选在线");
                 return;
             }
         };
         if index >= HOME_ONLINE_SLOTS {
-            self.toast("本地列表 / 最近播放不能换源");
+            self.toast("本地不可换");
             return;
         }
         let mut items: Vec<SourcePickerItem> = BUILTIN_SOURCES
@@ -141,7 +141,7 @@ impl App {
         self.cfg.home.entries = entries;
         // 持久化
         if let Err(e) = self.cfg.save(&self.paths.config_file) {
-            self.toast(format!("保存配置失败：{e}"));
+            self.toast("保存失败");
         }
         // 使该槽位失效并重新拉取
         self.slot_loaded[slot] = false;
@@ -152,10 +152,6 @@ impl App {
         self.focus = Focus::List;
         self.picker_slot = None;
         self.ensure_slot(slot);
-        self.toast(format!(
-            "「{}」已绑定「{}」",
-            self.slot_label(slot),
-            item.name
-        ));
+        self.toast("已绑定");
     }
 }

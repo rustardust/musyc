@@ -78,10 +78,10 @@ pub fn render_player(
     if area.height >= 2 {
         let pad_cols: usize = 2; // 左右各预留 2 列
         let available = width.saturating_sub(2 * pad_cols); // 可用内容宽度
-        let max_content = available; // 歌名+歌手可占满可用宽度（不再受百分比限制）
+        let max_content = available * 6 / 10; // 60%宽度上限
         let artist = current.map(|song| song.artist_text()).unwrap_or_default();
         let artist_width = UnicodeWidthStr::width(artist.as_str());
-        let artist_part = artist_width.min(22);
+        let artist_part = artist_width.min(22).min(max_content.saturating_sub(4));
         // 歌名预算 = 内容上限 - 歌手 - 中间空格，下限 4；全部按显示宽度（CJK 计 2 列）。
         let title_budget = max_content
             .saturating_sub(artist_part)

@@ -333,7 +333,7 @@ impl App {
                 }
                 self.scan_local();
                 self.history = history::recent(&self.paths.history_file, 50);
-                self.toast("正在刷新首页…");
+                self.toast("刷新中…");
             }
             View::Netease => match self.netease_page {
                 NeteasePage::Tracks => {
@@ -360,7 +360,7 @@ impl App {
             View::Local => self.scan_local(),
             View::Recent => {
                 self.history = history::recent(&self.paths.history_file, 50);
-                self.toast("已刷新最近播放");
+                self.toast("已刷新");
             }
         }
     }
@@ -462,7 +462,7 @@ impl App {
 
     pub(super) fn open_local(&mut self, path: PathBuf) {
         if !path.exists() {
-            self.toast(format!("文件不存在：{}", path.display()));
+            self.toast("文件不存在");
             return;
         }
         let song = local_song(&path, None, 0);
@@ -473,14 +473,14 @@ impl App {
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
             Err(e) => {
-                self.toast(format!("读取歌单失败：{e}"));
+                self.toast("读取歌单失败");
                 return;
             }
         };
         let base = path.parent().unwrap_or_else(|| Path::new("."));
         let entries = m3u::parse(&text, base);
         if entries.is_empty() {
-            self.toast("歌单为空，或没有可识别的条目");
+            self.toast("歌单为空");
             return;
         }
 
@@ -560,7 +560,7 @@ impl App {
         self.input_mode = InputMode::Search;
         self.error = None;
         self.restore_selection();
-        self.toast(format!("已打开：{title}（{count} 首）"));
+        self.toast("已打开");
         self.play_at(0, 0, true);
     }
 
@@ -705,11 +705,11 @@ impl App {
 
     pub(super) fn tag_selected(&mut self) {
         if self.view != View::Local || self.search.is_some() {
-            self.toast("只能在本地列表里补全标签");
+            self.toast("本地补全标签");
             return;
         }
         if self.tagging {
-            self.toast("已有补全任务在进行");
+            self.toast("正在补全中");
             return;
         }
         let Some(index) = self.selected_index() else {
@@ -720,13 +720,13 @@ impl App {
         };
         let origin = local_origin(&song);
         if !origin.exists() {
-            self.toast("本地文件不存在");
+            self.toast("文件不存在");
             return;
         }
         let source_dir = self.cfg.local.resolved_dir();
         let output_dir = self.cfg.local.resolved_output_dir();
         if same_dir(&source_dir, &output_dir) {
-            self.toast("转换目录不能与源目录相同，请修改配置 [local] output_dir");
+            self.toast("目录不能相同");
             return;
         }
 
@@ -744,7 +744,7 @@ impl App {
             Err(e) => {
                 self.tagging = false;
                 self.tag_progress = None;
-                self.toast(&e);
+                self.toast("客户端失败");
                 return;
             }
         };
@@ -792,12 +792,8 @@ impl App {
             };
 
             let message = match &updated {
-                Some(update) => format!(
-                    "已生成转换副本：{} — {}",
-                    update.title,
-                    update.artists.join(" / ")
-                ),
-                None => format!("没有找到匹配（{query}）"),
+                Some(_update) => "副本生成".to_string(),
+                None => "无匹配".to_string(),
             };
             let _ = tx.send(Event::TagResult {
                 seq,
@@ -810,15 +806,15 @@ impl App {
 
     pub(super) fn tag_all_missing(&mut self) {
         if self.view != View::Local || self.search.is_some() {
-            self.toast("只能在本地列表里补全标签");
+            self.toast("本地补全标签");
             return;
         }
         if self.tagging {
-            self.toast("已有补全任务在进行");
+            self.toast("正在补全中");
             return;
         }
         if self.local_loading {
-            self.toast("正在扫描本地目录，请稍候…");
+            self.toast("扫描中…");
             return;
         }
         let pending: Vec<Song> = self
@@ -828,13 +824,13 @@ impl App {
             .cloned()
             .collect();
         if pending.is_empty() {
-            self.toast("本地标签都已完整");
+            self.toast("标签已完整");
             return;
         }
         let source_dir = self.cfg.local.resolved_dir();
         let output_dir = self.cfg.local.resolved_output_dir();
         if same_dir(&source_dir, &output_dir) {
-            self.toast("转换目录不能与源目录相同，请修改配置 [local] output_dir");
+            self.toast("目录不能相同");
             return;
         }
 
@@ -853,7 +849,7 @@ impl App {
             Err(e) => {
                 self.tagging = false;
                 self.tag_progress = None;
-                self.toast(&e);
+                self.toast("客户端失败");
                 return;
             }
         };
@@ -939,11 +935,11 @@ impl App {
             return;
         };
         if !song.source.is_online() {
-            self.toast("本地文件无需下载");
+            self.toast("无需下载");
             return;
         }
         if self.downloading.is_some() {
-            self.toast("已有下载任务进行中");
+            self.toast("下载中…");
             return;
         }
 
