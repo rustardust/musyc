@@ -101,21 +101,21 @@ pub(super) fn song_table<'a>(
     let mut title_w = 0usize;
     let mut artist_w = 0usize;
     let mut album_w = 0usize;
+    // 歌名与歌手列按等宽分配（用户反馈：两者长度应基本一致），专辑列只吃剩余空间。
     if has_album {
         let content = total.saturating_sub(base + 4 * spacing);
-        let title = (content * 40 / 100).max(28);
-        let artist = (content * 22 / 100).max(18);
-        let album = content.saturating_sub(title + artist);
+        let half = (content * 34 / 100).max(18);
+        let album = content.saturating_sub(half * 2);
         if album >= 31 {
             show_album = true;
-            title_w = title;
-            artist_w = artist;
+            title_w = half;
+            artist_w = half;
             album_w = album;
         }
     }
     if !show_album {
         let content = total.saturating_sub(base + 3 * spacing);
-        title_w = ((content * 58 / 100).max(10)).min(content);
+        title_w = (content / 2).max(10).min(content);
         artist_w = content.saturating_sub(title_w);
     }
 
