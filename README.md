@@ -6,12 +6,6 @@
 
 > 基于歌单的终端音乐盒。
 
-![musyc 首页](docs/screenshot.png)
-
-| 歌词纯享 | 雀乐推荐 |
-| --- | --- |
-| ![歌词纯享](docs/screenshot-lyrics.png) | ![雀乐推荐](docs/screenshot-indie.png) |
-
 ## 设计理念
 
 **歌单，而不是曲库。** musyc 不试图做一个「什么都能搜到」的音乐平台。首页就是几张歌单：三个在线槽位，一个本地槽位。选一张，听下去。
