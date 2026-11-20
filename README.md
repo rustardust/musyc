@@ -72,4 +72,4 @@ musyc
 
 本软件只是播放器，不拥有、不存储、不分发任何音乐作品。网络音频仅限个人试听：试听缓存与下载文件请在 **24 小时内删除**，禁止传播或商用。因使用本软件产生的版权纠纷由使用者自行承担。
 
-版权所有 © 2026 yifedora，以 GPL-3.0-or-later 发布，见 [LICENSE](LICENSE)。接口能力来自 [netease-cloud-music-api-alger](https://github.com/algerkong/netease-cloud-music-api)，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox) 与 [AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer)。
+版权所有 © 2026 rustardust，以 GPL-3.0-or-later 发布，见 [LICENSE](LICENSE)。接口能力来自 [netease-cloud-music-api-alger](https://github.com/algerkong/netease-cloud-music-api)，交互灵感来自 [go-musicfox](https://github.com/go-musicfox/go-musicfox) 与 [AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer)。
