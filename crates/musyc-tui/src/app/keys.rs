@@ -89,28 +89,19 @@ impl App {
             KeyCode::Char('r') => self.cycle_mode(),
             KeyCode::Char('d') => self.download_selected(),
             KeyCode::Char('l') => {
-                self.show_lyrics = !self.show_lyrics;
-                // 关闭歌词时同步退出纯享模式，避免歌词区仍被纯享占据。
+                // 一个键循环三种状态：展开歌词 → 纯享 → 关闭。
                 if !self.show_lyrics {
-                    self.lyrics_immersive = false;
-                }
-                self.toast(if self.show_lyrics {
-                    "歌词：开"
-                } else {
-                    "歌词：关"
-                });
-            }
-            KeyCode::Char('v') => {
-                self.lyrics_immersive = !self.lyrics_immersive;
-                // 进入纯享时强制打开歌词；退出纯享回到分栏形态。
-                if self.lyrics_immersive {
                     self.show_lyrics = true;
-                }
-                self.toast(if self.lyrics_immersive {
-                    "纯享开"
+                    self.lyrics_immersive = false;
+                    self.toast("歌词开");
+                } else if !self.lyrics_immersive {
+                    self.lyrics_immersive = true;
+                    self.toast("纯享");
                 } else {
-                    "纯享关"
-                });
+                    self.lyrics_immersive = false;
+                    self.show_lyrics = false;
+                    self.toast("歌词关");
+                }
             }
             KeyCode::Char('R') => self.refresh_current(),
             KeyCode::Char('t') => self.tag_selected(),
