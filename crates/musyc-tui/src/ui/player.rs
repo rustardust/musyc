@@ -159,10 +159,7 @@ pub fn render_player(
             let text_width = UnicodeWidthStr::width(text.as_str());
             if width > text_width {
                 frame.render_widget(
-                    Paragraph::new(Line::from(Span::styled(
-                        text,
-                        Style::default().fg(theme.accent),
-                    ))),
+                    Paragraph::new(Line::from(Span::raw(text))),
                     Rect {
                         x: area.x + (width - text_width - 1) as u16,
                         y: area.y + 1,
@@ -175,13 +172,14 @@ pub fn render_player(
     }
 }
 
-/// `⏱00:16`；超过一小时用 `⏱1:05:30`。
+/// `◷00:16`；超过一小时用 `◷1:05:30`。
+/// 用文本字形的时钟符号，避免 emoji 字形比数字小。
 fn sleep_label(left: Option<Duration>) -> Option<String> {
     let secs = left?.as_secs();
     Some(if secs >= 3600 {
-        format!("⏱{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
+        format!("◷{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
     } else {
-        format!("⏱{:02}:{:02}", secs / 60, secs % 60)
+        format!("◷{:02}:{:02}", secs / 60, secs % 60)
     })
 }
 
