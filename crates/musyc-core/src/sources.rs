@@ -64,6 +64,8 @@ pub enum SourceKind {
     JamendoPlaylist,
     FmaCharts,
     GenericJson,
+    /// Audius 热门榜（免费 Open API，无需登录）。
+    AudiusTrending,
 }
 
 impl SourceKind {
@@ -74,6 +76,7 @@ impl SourceKind {
             "jamendo-playlist" | "jamendo" => Some(Self::JamendoPlaylist),
             "fma-charts" | "fma" => Some(Self::FmaCharts),
             "generic-json" | "generic" => Some(Self::GenericJson),
+            "audius-trending" | "audius" => Some(Self::AudiusTrending),
             _ => None,
         }
     }
@@ -85,6 +88,7 @@ impl SourceKind {
             Self::JamendoPlaylist => "jamendo-playlist",
             Self::FmaCharts => "fma-charts",
             Self::GenericJson => "generic-json",
+            Self::AudiusTrending => "audius-trending",
         }
     }
 }
@@ -107,6 +111,8 @@ pub struct SourceFile {
     pub client_id: String,
     /// Jamendo 返回条数，默认 50。
     pub limit: Option<u32>,
+    /// Audius 时间范围：`week`（默认）/ `month` / `allTime`。
+    pub time: String,
     // generic-json 字段映射（点路径）。
     pub list_path: String,
     pub id_path: String,
@@ -134,6 +140,7 @@ pub struct Source {
     pub cat: String,
     pub client_id: String,
     pub limit: u32,
+    pub time: String,
     pub url: String,
     pub list_path: String,
     pub id_path: String,
@@ -207,6 +214,19 @@ impl Source {
             }
         };
         let limit = raw.limit.unwrap_or(50).clamp(1, 200);
+        let time = {
+            let trimmed = raw.time.trim();
+            match trimmed {
+                "month" | "allTime" | "week" => trimmed.to_string(),
+                "" => "week".to_string(),
+                other => {
+                    return Err(Error::Config(format!(
+                        "{}: time 只能是 week / month / allTime（当前 {other:?}）",
+                        file.display()
+                    )));
+                }
+            }
+        };
         match kind {
             SourceKind::NeteasePlaylist => {
                 if playlist_id.is_empty() {
@@ -232,7 +252,7 @@ impl Source {
                     )));
                 }
             }
-            SourceKind::FmaCharts | SourceKind::StreetVoiceCat => {}
+            SourceKind::FmaCharts | SourceKind::StreetVoiceCat | SourceKind::AudiusTrending => {}
         }
         let fma_url = if matches!(kind, SourceKind::FmaCharts) && url.is_empty() {
             "https://freemusicarchive.org/music/charts/this-week".to_string()
@@ -250,6 +270,7 @@ impl Source {
             cat: raw.cat.trim().to_string(),
             client_id,
             limit,
+            time,
             url: fma_url,
             list_path: raw.list_path.trim().to_string(),
             id_path: raw.id_path.trim().to_string(),

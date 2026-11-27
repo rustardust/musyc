@@ -10,9 +10,11 @@ use musyc_core::sources::{Source, SourceKind as Kind};
 use musyc_core::{Error, Result};
 use serde_json::Value;
 
+mod audius;
 mod fma;
 mod json;
 
+use audius::*;
 use fma::*;
 use json::*;
 
@@ -43,6 +45,7 @@ pub async fn load(source: &Source, http: &reqwest::Client) -> Result<Vec<Song>> 
         Kind::JamendoPlaylist => fetch_jamendo(source, http).await?,
         Kind::FmaCharts => fetch_fma(source, http).await?,
         Kind::GenericJson => fetch_generic_json(source, http).await?,
+        Kind::AudiusTrending => fetch_audius(source, http).await?,
     };
     trace_source(source, &songs);
     Ok(songs)

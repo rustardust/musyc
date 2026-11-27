@@ -1,0 +1,6 @@
+id = "audius-week"
+name = "Audius 本周"
+desc = "Audius 热门榜 · 免费 Open API"
+kind = "audius-trending"
+time = "week"
+limit = 50

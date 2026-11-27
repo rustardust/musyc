@@ -40,86 +40,33 @@ impl App {
         self.slot_loading[slot] = true;
         self.slot_error[slot] = None;
         let bound = home_entry_id(&self.cfg.home.entries, slot);
+        let source = self.slot_source(slot);
+        if source.is_none()
+            && !matches!(
+                bound.as_str(),
+                musyc_core::sources::BUILTIN_NETEASE
+                    | musyc_core::sources::BUILTIN_STREETVOICE
+                    | musyc_core::sources::BUILTIN_INDIE
+            )
+        {
+            self.slot_loading[slot] = false;
+            self.slot_error[slot] = Some(format!("未找到源「{bound}」"));
+            return;
+        }
         let api = self.api.clone();
         let http = self.http.clone();
         let tx = self.tx.clone();
-        match bound.as_str() {
-            musyc_core::sources::BUILTIN_NETEASE => {
-                tokio::spawn(async move {
-                    let result = api.original_chart(30).await.map_err(|e| e.to_string());
-                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                });
-            }
-            musyc_core::sources::BUILTIN_STREETVOICE => {
-                tokio::spawn(async move {
-                    let result = api.streetvoice_recommend().await.map_err(|e| e.to_string());
-                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                });
-            }
-            musyc_core::sources::BUILTIN_INDIE => {
-                tokio::spawn(async move {
-                    // 雀乐：拉一次目录，把所有期的歌曲扁平化作为「雀乐推荐」
-                    let result = async {
-                        let catalog = api.indie_catalog().await.map_err(|e| e.to_string())?;
-                        // 雀乐最新一期：取目录第一项的歌曲，避免把十期扁平成长队
-                        let songs = catalog
-                            .into_iter()
-                            .next()
-                            .map(|p| p.songs)
-                            .unwrap_or_default();
-                        Ok::<Vec<Song>, String>(songs)
-                    }
-                    .await;
-                    let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                });
-            }
-            _ => {
-                let source = match self.slot_source(slot) {
-                    Some(s) => s,
-                    None => {
-                        self.slot_loading[slot] = false;
-                        self.slot_error[slot] = Some(format!("未找到源「{bound}」"));
-                        return;
-                    }
-                };
-                // netease-playlist kind：复用 playlist_tracks 快速通道
-                match source.kind {
-                    musyc_core::SourceDefinitionKind::NeteasePlaylist => {
-                        let id = source.playlist_id.clone();
-                        tokio::spawn(async move {
-                            let result = api
-                                .playlist_tracks(&id, 1000, 0)
-                                .await
-                                .map_err(|e| e.to_string());
-                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                        });
-                    }
-                    musyc_core::SourceDefinitionKind::StreetVoiceCat => {
-                        let cat = if source.cat.trim().is_empty() {
-                            "recommend".to_string()
-                        } else {
-                            source.cat.trim().to_string()
-                        };
-                        tokio::spawn(async move {
-                            let result = if cat == "recommend" {
-                                api.streetvoice_recommend().await.map_err(|e| e.to_string())
-                            } else {
-                                api.streetvoice_cat(&cat).await.map_err(|e| e.to_string())
-                            };
-                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                        });
-                    }
-                    _ => {
-                        tokio::spawn(async move {
-                            let result = load_custom_source(&source, &http)
-                                .await
-                                .map_err(|e| e.to_string());
-                            let _ = tx.send(Event::HomeSlot { seq, slot, result });
-                        });
-                    }
-                }
-            }
-        }
+        // 所有来源走同一个入口：内置与自定义只在 provider 内分派。
+        tokio::spawn(async move {
+            let request = match source.as_ref() {
+                Some(source) => PlaylistRequest::Custom(source),
+                None => PlaylistRequest::Builtin(&bound),
+            };
+            let result = load_playlist(request, &api, &http)
+                .await
+                .map_err(|e| e.to_string());
+            let _ = tx.send(Event::HomeSlot { seq, slot, result });
+        });
     }
     pub(super) fn ensure_view_data(&mut self) {
         match self.view {

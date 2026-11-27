@@ -90,13 +90,13 @@ impl Default for UiConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DownloadConfig {
-    /// 下载目录；留空使用 `~/Music/musyc`。
+    /// 下载目录；留空使用 `~/Music/musyc/download`。
     pub dir: String,
 }
 
 impl DownloadConfig {
     pub fn resolved_dir(&self) -> std::path::PathBuf {
-        resolve_dir(&self.dir, "musyc")
+        resolve_dir(&self.dir, "musyc/download")
     }
 }
 

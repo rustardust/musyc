@@ -205,6 +205,7 @@ impl App {
                 let trimmed = text.trim();
                 (!trimmed.is_empty()).then_some(text)
             }
+            SourceKind::Audius => None,
             SourceKind::StreetVoice => {
                 let detail = api.streetvoice_detail(&song.id).await.ok()?;
                 let text = detail.lyrics.trim().to_string();
@@ -248,6 +249,7 @@ impl App {
                     }
                 });
             }
+            SourceKind::Audius => {}
             SourceKind::StreetVoice => {
                 let api = self.api.clone();
                 let tx = self.tx.clone();

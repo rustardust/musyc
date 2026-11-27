@@ -13,6 +13,8 @@ pub enum SourceKind {
     Indie,
     /// 街声（streetvoice.cn）推荐，播放时经本机 API 转成 MP3。
     StreetVoice,
+    /// Audius 热门榜，播放地址由 Open API 直接重定向到 CDN。
+    Audius,
 }
 
 impl SourceKind {
@@ -24,6 +26,7 @@ impl SourceKind {
             SourceKind::Local => "本地",
             SourceKind::Indie => "雀乐",
             SourceKind::StreetVoice => "街声",
+            SourceKind::Audius => "Audius",
         }
     }
 

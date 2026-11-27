@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use ferrous_opencc::OpenCC;
 use ferrous_opencc::config::BuiltinConfig;
 
-use musyc_api::{ApiClient, IndiePlaylist, RawLyric, Resolver, load_custom_source};
+use musyc_api::{ApiClient, IndiePlaylist, PlaylistRequest, RawLyric, Resolver, load_playlist};
 use musyc_core::config::Config;
 use musyc_core::lyric::Lyrics;
 use musyc_core::model::{PlayMode, Playlist, Quality, Song, SourceKind};

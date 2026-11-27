@@ -95,6 +95,25 @@ impl Resolver {
                 self.remember(&cache_key, &source).await;
                 return Ok(source);
             }
+            SourceKind::Audius => {
+                let url = song
+                    .play_url
+                    .clone()
+                    .filter(|u| !u.trim().is_empty())
+                    .ok_or_else(|| Error::Api("Audius 歌曲缺少播放地址".into()))?;
+                let source = ResolvedSource {
+                    url,
+                    provider: "Audius".into(),
+                    br: 0,
+                    format: "mp3".into(),
+                    preview: false,
+                    duration_ms: None,
+                    album: None,
+                    cover_url: None,
+                };
+                self.remember(&cache_key, &source).await;
+                return Ok(source);
+            }
             SourceKind::Local => {
                 return Err(Error::Api("本地文件不需要解析音源".into()));
             }
