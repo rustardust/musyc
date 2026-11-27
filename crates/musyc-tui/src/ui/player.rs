@@ -3,6 +3,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
+use std::time::Duration;
 use unicode_width::UnicodeWidthStr;
 
 use musyc_core::model::{PlayMode, Song};
@@ -21,6 +22,7 @@ pub fn render_player(
     pos_ms: u64,
     dur_ms: u64,
     mode: PlayMode,
+    sleep: Option<Duration>,
     status: Option<String>,
 ) {
     // fox 底栏：无边框。上行整宽进度条，右端 `cur ● dur 模式`（像下划线，贴近底部）；
@@ -51,7 +53,18 @@ pub fn render_player(
     } else {
         note_icon
     };
-    let trailing = format!("{time_text} {mode_text}");
+    let sleep_text = match sleep {
+        Some(left) => {
+            let secs = left.as_secs();
+            if secs >= 3600 {
+                format!(" ⏱{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
+            } else {
+                format!(" ⏱{:02}:{:02}", secs / 60, secs % 60)
+            }
+        }
+        None => String::new(),
+    };
+    let trailing = format!("{time_text} {mode_text}{sleep_text}");
     let trailing_width = UnicodeWidthStr::width(trailing.as_str());
     let bar_width = width.saturating_sub(trailing_width + 1).max(1);
     let ratio = if dur_ms > 0 {

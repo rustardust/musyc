@@ -66,6 +66,12 @@ impl App {
                 self.input.clear();
                 self.input_cursor = 0;
             }
+            KeyCode::Char('z') => {
+                self.focus = Focus::Input;
+                self.input_mode = InputMode::Sleep;
+                self.input.clear();
+                self.input_cursor = 0;
+            }
             KeyCode::Char('j') | KeyCode::Down => self.move_selection(1),
             KeyCode::Char('k') | KeyCode::Up => self.move_selection(-1),
             KeyCode::Char('g') | KeyCode::Home => self.select_boundary(false),
@@ -119,7 +125,7 @@ impl App {
         match key.code {
             KeyCode::Esc => {
                 self.focus = Focus::List;
-                if self.input_mode == InputMode::Open {
+                if matches!(self.input_mode, InputMode::Open | InputMode::Sleep) {
                     self.input.clear();
                     self.input_cursor = 0;
                     self.input_mode = InputMode::Search;

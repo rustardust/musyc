@@ -281,6 +281,8 @@ impl App {
             self.pos_ms,
             self.dur_ms,
             self.mode,
+            self.sleep_deadline
+                .map(|deadline| deadline.saturating_duration_since(Instant::now())),
             hint,
         );
 

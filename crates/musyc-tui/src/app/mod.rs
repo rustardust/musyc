@@ -164,6 +164,8 @@ pub struct App {
     show_help: bool,
     help_scroll: u16,
     toast: Option<(String, Instant)>,
+    /// 定时关闭的截止时刻；None 表示未开启。
+    sleep_deadline: Option<Instant>,
     quit: bool,
 
     // MPRIS
@@ -335,6 +337,7 @@ impl App {
             show_help: false,
             help_scroll: 0,
             toast: None,
+            sleep_deadline: None,
             quit: false,
             mpris_cmd: None,
             mpris_last_sync: Instant::now(),
@@ -384,6 +387,12 @@ impl App {
             && at.elapsed() > Duration::from_secs(4)
         {
             self.toast = None;
+        }
+        if self
+            .sleep_deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
+            self.quit = true;
         }
         self.ensure_selection();
         self.sync_mpris(false);

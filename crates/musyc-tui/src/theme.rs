@@ -1,6 +1,6 @@
 use ratatui::style::Color;
 
-/// 极简配色：强调色荷叶绿 #1a6840，品牌色金莲花橙 #f86b1d，其余全部使用终端默认前景。
+/// 极简配色：强调色青绿 #12aa9c，品牌色金莲花橙 #f86b1d，其余全部使用终端默认前景。
 #[derive(Debug, Clone, Copy)]
 pub struct Theme {
     pub accent: Color,
@@ -9,6 +9,6 @@ pub struct Theme {
 }
 
 pub const THEME: Theme = Theme {
-    accent: Color::Rgb(26, 104, 64),
+    accent: Color::Rgb(18, 170, 156),
     bender: Color::Rgb(248, 107, 29),
 };

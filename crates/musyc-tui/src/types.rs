@@ -82,6 +82,7 @@ pub enum InputMode {
     Search,
     PlaylistSearch,
     Open,
+    Sleep,
 }
 
 impl InputMode {
@@ -90,6 +91,7 @@ impl InputMode {
             InputMode::Search => "搜索单曲",
             InputMode::PlaylistSearch => "搜索歌单",
             InputMode::Open => "打开",
+            InputMode::Sleep => "定时关闭",
         }
     }
 
@@ -98,6 +100,7 @@ impl InputMode {
             InputMode::Search => "歌曲关键词…",
             InputMode::PlaylistSearch => "网易云歌单关键词…",
             InputMode::Open => "路径 / 链接 / ID / M3U…",
+            InputMode::Sleep => "分钟后退出（留空取消）…",
         }
     }
 }

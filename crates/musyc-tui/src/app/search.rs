@@ -3,16 +3,33 @@ use super::*;
 impl App {
     pub(super) fn submit_input(&mut self) {
         let raw = self.input.trim().to_string();
+        let mode = self.input_mode;
+        if mode == InputMode::Sleep {
+            self.focus = Focus::List;
+            self.input_mode = InputMode::Search;
+            self.sleep_deadline = None;
+            match raw.parse::<u32>() {
+                Ok(minutes) if minutes > 0 => {
+                    let minutes = minutes.min(1440);
+                    self.sleep_deadline =
+                        Some(Instant::now() + Duration::from_secs(u64::from(minutes) * 60));
+                    self.toast(format!("定时{minutes}分"));
+                }
+                Ok(_) => self.toast("定时取消"),
+                Err(_) => self.toast("分钟数"),
+            }
+            return;
+        }
         if raw.is_empty() {
             self.focus = Focus::List;
             return;
         }
-        let mode = self.input_mode;
         self.focus = Focus::List;
         match mode {
             InputMode::Search => self.search_songs_now(&raw),
             InputMode::PlaylistSearch => self.search_netease_playlists(&raw),
             InputMode::Open => self.submit_raw(&raw),
+            InputMode::Sleep => {}
         }
     }
     pub(super) fn submit_raw(&mut self, raw: &str) {
