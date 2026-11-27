@@ -53,18 +53,7 @@ pub fn render_player(
     } else {
         note_icon
     };
-    let sleep_text = match sleep {
-        Some(left) => {
-            let secs = left.as_secs();
-            if secs >= 3600 {
-                format!(" ⏱{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
-            } else {
-                format!(" ⏱{:02}:{:02}", secs / 60, secs % 60)
-            }
-        }
-        None => String::new(),
-    };
-    let trailing = format!("{time_text} {mode_text}{sleep_text}");
+    let trailing = format!("{time_text} {mode_text}");
     let trailing_width = UnicodeWidthStr::width(trailing.as_str());
     let bar_width = width.saturating_sub(trailing_width + 1).max(1);
     let ratio = if dur_ms > 0 {
@@ -164,7 +153,36 @@ pub fn render_player(
                 ..area
             },
         );
+
+        // 定时关闭倒计时：贴右下角，单独绘制，避免挤占歌名/歌手与通知区。
+        if let Some(text) = sleep_label(sleep) {
+            let text_width = UnicodeWidthStr::width(text.as_str());
+            if width > text_width {
+                frame.render_widget(
+                    Paragraph::new(Line::from(Span::styled(
+                        text,
+                        Style::default().fg(theme.accent),
+                    ))),
+                    Rect {
+                        x: area.x + (width - text_width - 1) as u16,
+                        y: area.y + 1,
+                        width: text_width as u16,
+                        height: 1,
+                    },
+                );
+            }
+        }
     }
+}
+
+/// `⏱00:16`；超过一小时用 `⏱1:05:30`。
+fn sleep_label(left: Option<Duration>) -> Option<String> {
+    let secs = left?.as_secs();
+    Some(if secs >= 3600 {
+        format!("⏱{}:{:02}:{:02}", secs / 3600, secs % 3600 / 60, secs % 60)
+    } else {
+        format!("⏱{:02}:{:02}", secs / 60, secs % 60)
+    })
 }
 
 /// 歌名加粗，` — 歌手` 保持普通样式；空间不足时先截断歌名，再截断歌手。
