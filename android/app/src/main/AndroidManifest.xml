@@ -32,6 +32,10 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".play.MediaActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".play.PlaybackService"
             android:exported="true"

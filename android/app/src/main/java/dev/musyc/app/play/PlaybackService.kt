@@ -13,6 +13,9 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.MediaStyleNotificationHelper
 import dev.musyc.app.MainActivity
 import dev.musyc.app.R
+import dev.musyc.app.play.MediaActionReceiver.Companion.ACTION_NEXT
+import dev.musyc.app.play.MediaActionReceiver.Companion.ACTION_PREV
+import dev.musyc.app.play.MediaActionReceiver.Companion.ACTION_TOGGLE
 
 class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
@@ -40,6 +43,13 @@ class PlaybackService : MediaSessionService() {
         })
     }
 
+    private fun broadcast(action: String, code: Int): PendingIntent = PendingIntent.getBroadcast(
+        this,
+        code,
+        Intent(action).setPackage(packageName),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
     private fun updateNotification() {
         val session = session ?: return
         val player = session.player
@@ -50,7 +60,24 @@ class PlaybackService : MediaSessionService() {
             .setContentTitle(meta.title?.toString().orEmpty().ifEmpty { getString(R.string.app_name) })
             .setContentText(meta.artist?.toString().orEmpty())
             .setContentIntent(session.sessionActivity)
-            .setStyle(MediaStyleNotificationHelper.MediaStyle(session))
+            .setStyle(
+                MediaStyleNotificationHelper.MediaStyle(session).setShowActionsInCompactView(0, 1, 2),
+            )
+            .addAction(
+                R.drawable.ic_prev,
+                "上一首",
+                broadcast(ACTION_PREV, 1),
+            )
+            .addAction(
+                if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+                if (player.isPlaying) "暂停" else "播放",
+                broadcast(ACTION_TOGGLE, 2),
+            )
+            .addAction(
+                R.drawable.ic_next,
+                "下一首",
+                broadcast(ACTION_NEXT, 3),
+            )
             .setOngoing(player.isPlaying)
             .setSilent(true)
             .setShowWhen(false)
@@ -87,7 +114,24 @@ class PlaybackService : MediaSessionService() {
             .setContentTitle(title.ifEmpty { getString(R.string.app_name) })
             .setContentText(artist)
             .setContentIntent(session.sessionActivity)
-            .setStyle(MediaStyleNotificationHelper.MediaStyle(session))
+            .setStyle(
+                MediaStyleNotificationHelper.MediaStyle(session).setShowActionsInCompactView(0, 1, 2),
+            )
+            .addAction(
+                R.drawable.ic_prev,
+                "上一首",
+                broadcast(ACTION_PREV, 1),
+            )
+            .addAction(
+                if (player.isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+                if (player.isPlaying) "暂停" else "播放",
+                broadcast(ACTION_TOGGLE, 2),
+            )
+            .addAction(
+                R.drawable.ic_next,
+                "下一首",
+                broadcast(ACTION_NEXT, 3),
+            )
             .setOngoing(player.isPlaying)
             .setSilent(true)
             .setShowWhen(false)

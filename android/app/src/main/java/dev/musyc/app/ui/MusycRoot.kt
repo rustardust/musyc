@@ -15,6 +15,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -130,13 +134,14 @@ fun MusycRoot(vm: AppViewModel) {
     }
 
     Scaffold(
+        // 顶部安全区由各页 TopAppBar 自行处理，这里只保留底部，避免顶部 padding 叠加。
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             MiniPlayer(
                 state = player,
                 onOpen = vm::toggleLyrics,
                 onMode = { PlaybackManager.cycleMode() },
-                onLyrics = vm::toggleLyrics,
                 onToggle = { PlaybackManager.toggle() },
                 onNext = { PlaybackManager.next() },
                 onQueue = { queueOpen = true },

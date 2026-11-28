@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -54,14 +53,13 @@ import dev.musyc.app.play.PlaybackUiState
 
 /**
  * 底部播放条：承担全部播放控制，不再弹出单独的播放页。
- * 点击封面/标题：展开或收起全页歌词；右侧图标：模式 / 歌词 / 播放 / 下一首 / 更多。
+ * 点击封面/标题：展开或收起全页歌词；右侧图标：模式 / 播放 / 下一首 / 更多。
  */
 @Composable
 fun MiniPlayer(
     state: PlaybackUiState,
     onOpen: () -> Unit,
     onMode: () -> Unit,
-    onLyrics: () -> Unit,
     onToggle: () -> Unit,
     onNext: () -> Unit,
     onQueue: () -> Unit,
@@ -109,9 +107,6 @@ fun MiniPlayer(
                 }
                 IconButton(onClick = onMode) {
                     Icon(modeIcon(state.mode), contentDescription = "播放模式：${state.mode.label}")
-                }
-                IconButton(onClick = onLyrics) {
-                    Icon(Icons.Default.Lyrics, contentDescription = "歌词")
                 }
                 IconButton(onClick = onToggle) {
                     Icon(
