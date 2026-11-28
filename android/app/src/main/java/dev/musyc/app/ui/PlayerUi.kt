@@ -17,12 +17,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -118,6 +122,8 @@ fun PlayerSheet(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onSeek: (Long) -> Unit,
+    onSeekBy: (Long) -> Unit,
+    onVolume: (Float) -> Unit,
     onLyrics: () -> Unit,
     onDownload: () -> Unit,
     onSleep: () -> Unit,
@@ -182,6 +188,9 @@ fun PlayerSheet(
                 IconButton(onClick = onPrevious) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = "上一首")
                 }
+                IconButton(onClick = { onSeekBy(-5_000) }) {
+                    Icon(Icons.Default.Replay5, contentDescription = "快退 5 秒")
+                }
                 FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
                     Icon(
                         if (state.playing) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -192,9 +201,30 @@ fun PlayerSheet(
                 IconButton(onClick = onNext) {
                     Icon(Icons.Default.SkipNext, contentDescription = "下一首")
                 }
+                IconButton(onClick = { onSeekBy(5_000) }) {
+                    Icon(Icons.Default.Forward5, contentDescription = "快进 5 秒")
+                }
                 IconButton(onClick = onQueue) {
                     Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "播放列表")
                 }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Default.VolumeDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(
+                    value = state.volume,
+                    onValueChange = onVolume,
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    colors = androidx.compose.material3.SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                    ),
+                )
+                Icon(Icons.Default.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

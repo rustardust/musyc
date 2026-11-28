@@ -41,6 +41,7 @@ data class PlaybackUiState(
     val sleepLeftMs: Long? = null,
     val message: String? = null,
     val mode: PlayMode = PlayMode.ListLoop,
+    val volume: Float = 1f,
 )
 
 /**
@@ -67,7 +68,7 @@ object PlaybackManager {
         val savedMode = prefs.getString("mode", null)
             ?.let { name -> PlayMode.entries.firstOrNull { it.name == name } }
             ?: PlayMode.ListLoop
-        _state.update { it.copy(mode = savedMode) }
+        _state.update { it.copy(mode = savedMode, volume = prefs.getFloat("volume", 1f)) }
         player = ExoPlayer.Builder(context.applicationContext).build().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
@@ -77,6 +78,7 @@ object PlaybackManager {
                 true,
             )
             setHandleAudioBecomingNoisy(true)
+            volume = prefs.getFloat("volume", 1f)
             repeatMode = Player.REPEAT_MODE_OFF
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -189,6 +191,22 @@ object PlaybackManager {
 
     fun seekTo(ms: Long) {
         if (player.currentMediaItem != null) player.seekTo(ms.coerceAtLeast(0))
+    }
+
+    /** 对应 TUI 的 ←/→：±5 秒。 */
+    fun seekBy(deltaMs: Long) {
+        if (player.currentMediaItem == null) return
+        val duration = if (player.duration > 0) player.duration else _state.value.durationMs
+        val target = (player.currentPosition + deltaMs).coerceIn(0, duration.coerceAtLeast(0))
+        player.seekTo(target)
+        _state.update { it.copy(positionMs = target) }
+    }
+
+    fun setVolume(value: Float) {
+        val v = value.coerceIn(0f, 1f)
+        if (::player.isInitialized) player.volume = v
+        prefs.edit().putFloat("volume", v).apply()
+        _state.update { it.copy(volume = v) }
     }
 
     /** minutes <= 0 表示取消。 */

@@ -75,6 +75,7 @@ fun SongRow(
     index: Int,
     playing: Boolean,
     onClick: () -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -125,6 +126,7 @@ fun SongRow(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        trailing?.invoke()
     }
 }
 

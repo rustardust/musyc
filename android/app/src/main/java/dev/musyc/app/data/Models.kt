@@ -5,6 +5,7 @@ enum class Source(val label: String) {
     STREETVOICE("街声"),
     INDIE("雀乐"),
     AUDIUS("Audius"),
+    CUSTOM("自定义"),
     LOCAL("本地"),
 }
 

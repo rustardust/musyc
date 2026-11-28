@@ -42,7 +42,7 @@ object Repository {
     suspend fun resolve(song: Song): Song? = withContext(Dispatchers.IO) {
         when (song.source) {
             Source.LOCAL -> song
-            Source.INDIE, Source.AUDIUS -> song.takeIf { !it.playUrl.isNullOrBlank() }
+            Source.INDIE, Source.AUDIUS, Source.CUSTOM -> song.takeIf { !it.playUrl.isNullOrBlank() }
             Source.STREETVOICE -> StreetVoiceApi.prepare(song)
             Source.NETEASE -> NeteaseApi.streamUrl(song.id)?.let { url ->
                 song.copy(playUrl = url)

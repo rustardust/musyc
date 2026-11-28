@@ -35,6 +35,14 @@ class RecentStore(context: Context) {
     fun push(song: Song) {
         val list = load().filterNot { it.key == song.key }.toMutableList()
         list.add(0, song)
+        write(list)
+    }
+
+    fun remove(song: Song) {
+        write(load().filterNot { it.key == song.key })
+    }
+
+    private fun write(list: List<Song>) {
         val arr = JSONArray()
         list.take(50).forEach { s ->
             arr.put(

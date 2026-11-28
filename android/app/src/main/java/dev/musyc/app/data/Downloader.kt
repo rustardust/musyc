@@ -39,6 +39,11 @@ object Downloader {
             if (!resp.isSuccessful) error("下载失败 HTTP ${resp.code}")
             val body = resp.body ?: error("响应为空")
             val total = body.contentLength()
+            val raw = java.io.ByteArrayOutputStream()
+            body.byteStream().use { input ->
+                copyWithProgress(input, raw, total, onProgress)
+            }
+            val bytes = Tagger.enrich(context, song, raw.toByteArray(), ext)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val values = ContentValues().apply {
                     put(MediaStore.Downloads.DISPLAY_NAME, name)
@@ -51,9 +56,7 @@ object Downloader {
                     ?: error("无法创建下载文件")
                 try {
                     resolver.openOutputStream(uri)?.use { out ->
-                        body.byteStream().use { input ->
-                            copyWithProgress(input, out, total, onProgress)
-                        }
+                        out.write(bytes)
                     } ?: error("无法写入下载文件")
                     values.clear()
                     values.put(MediaStore.Downloads.IS_PENDING, 0)
@@ -70,11 +73,7 @@ object Downloader {
                 )
                 dir.mkdirs()
                 val file = File(dir, name)
-                file.outputStream().use { out ->
-                    body.byteStream().use { input ->
-                        copyWithProgress(input, out, total, onProgress)
-                    }
-                }
+                file.outputStream().use { it.write(bytes) }
                 file.absolutePath
             }
         }
