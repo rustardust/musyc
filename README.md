@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/rustardust/musyc)](https://github.com/rustardust/musyc/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 
-> 基于歌单的终端音乐盒。
+> 基于歌单的音乐盒。
 
 ## 设计理念
 
@@ -14,7 +14,7 @@
 
 **无登录，无解灰。** 不登录任何账号，不接第三方「解灰」音源。网易云只走官方直链与官方 30 秒试听；拿不到就跳过，不绕路。
 
-**不执着于会员歌曲。** 除了会员曲库，还有太多新歌值得被发现。会员歌听不到就不听，把注意力留给那些可以自由获取的声音。
+**不执着于会员歌曲。** 除了会员曲库，还有太多好歌值得被发现。会员歌听不到就不听，把注意力留给那些可以自由获取的声音。
 
 **极简主义。** 单一首页、五个入口、一个列表。`Esc` 逐级返回，并停在上次的位置；没有多层侧栏，没有冗余面板。
 
