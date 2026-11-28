@@ -57,6 +57,15 @@
 | `?` | 快捷键帮助 |
 | `q` | 退出 |
 
+## Android 客户端
+
+`android/` 是一个独立的 Android App（Kotlin + Jetpack Compose + Media3），不依赖电脑，直接连接三个在线源。
+
+功能：首页三在线 + 本地音乐 + 最近播放、搜索、完整播放页、同步歌词、下载到 `Download/musyc`、定时关闭。
+
+- **安装包**：从 [Releases](https://github.com/rustardust/musyc/releases/latest) 下载 `musyc-0.4.0.apk`，在手机上允许「安装未知来源应用」后安装。
+- **自行构建**：`cd android && ./gradlew :app:assembleDebug`，需要 JDK 21 和 Android SDK 35。
+
 ## 安装
 
 ```bash
