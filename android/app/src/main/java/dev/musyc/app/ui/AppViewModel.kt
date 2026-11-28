@@ -587,6 +587,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var lyricsJob: kotlinx.coroutines.Job? = null
 
     /** 打开全页歌词；重复点击同一页时仅刷新，不再叠栈。 */
+    /** 点击播放条：当前在歌词页就收起，否则打开全页歌词。 */
+    fun toggleLyrics() {
+        if (current() is Screen.Lyrics) back() else openLyrics()
+    }
+
     fun openLyrics() {
         val song = PlaybackManager.state.value.song ?: return
         _playerOpen.value = false

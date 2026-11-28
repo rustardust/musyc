@@ -49,31 +49,31 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Column {
-                    Text("musyc", fontWeight = FontWeight.Bold)
-                    Text(
-                        "基于歌单的终端音乐盒",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = onOpenLink) {
-                    Icon(Icons.Default.Link, contentDescription = "打开")
-                }
-                IconButton(onClick = onSearch) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
-                }
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                }
-            },
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "musyc",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onOpenLink) {
+                Icon(Icons.Default.Link, contentDescription = "打开")
+            }
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Default.Search, contentDescription = "搜索")
+            }
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Default.Refresh, contentDescription = "刷新")
+            }
+        }
         LazyColumn(
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             itemsIndexed(slots) { index, slot ->
@@ -81,17 +81,6 @@ fun HomeScreen(
                     slot = slot,
                     onClick = { onOpen(slot) },
                     onSwap = if (slot.kind is SlotKind.Online) ({ onSwap(index) }) else null,
-                )
-            }
-            item {
-                Text(
-                    "无登录 · 无解灰 · 歌单可插拔",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
         }

@@ -1817,7 +1817,7 @@ dependencies = [
 
 [[package]]
 name = "musyc"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -1831,7 +1831,7 @@ dependencies = [
 
 [[package]]
 name = "musyc-api"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "musyc-core",
  "reqwest",
@@ -1843,7 +1843,7 @@ dependencies = [
 
 [[package]]
 name = "musyc-core"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "chrono",
  "dirs",
@@ -1857,7 +1857,7 @@ dependencies = [
 
 [[package]]
 name = "musyc-library"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "lofty",
  "musyc-core",
@@ -1868,7 +1868,7 @@ dependencies = [
 
 [[package]]
 name = "musyc-player"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "musyc-core",
  "reqwest",
@@ -1879,7 +1879,7 @@ dependencies = [
 
 [[package]]
 name = "musyc-tui"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "chrono",
  "ferrous-opencc",

@@ -6,89 +6,50 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.musyc.app.data.Lyric
 import kotlinx.coroutines.delay
 import kotlin.math.abs
-import dev.musyc.app.data.Song
 
-/** 全页歌词：与 TUI 的纯享模式一致，歌词铺满整屏，当前行居中高亮。 */
-@OptIn(ExperimentalMaterial3Api::class)
+/** 全页歌词：从屏幕左上角开始铺满，当前行居中高亮；点击播放条即可收起。 */
 @Composable
 fun LyricsScreen(
-    song: Song?,
     lyric: Lyric?,
     loading: Boolean,
     positionMs: Long,
-    onBack: () -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            song?.title ?: "歌词",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        song?.artists?.takeIf { it.isNotBlank() }?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            when {
-                loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                lyric == null -> Empty(Modifier.align(Alignment.Center), "暂无歌词")
-                lyric.lines.isEmpty() && lyric.plain.isBlank() ->
-                    Empty(Modifier.align(Alignment.Center), "暂无歌词")
-                lyric.lines.isEmpty() -> PlainLyrics(lyric.plain)
-                else -> SyncedLyrics(lyric, positionMs)
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars),
+    ) {
+        when {
+            loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+            lyric == null -> Empty(Modifier.align(Alignment.Center), "暂无歌词")
+            lyric.lines.isEmpty() && lyric.plain.isBlank() ->
+                Empty(Modifier.align(Alignment.Center), "暂无歌词")
+            lyric.lines.isEmpty() -> PlainLyrics(lyric.plain)
+            else -> SyncedLyrics(lyric, positionMs)
         }
     }
 }
@@ -146,7 +107,7 @@ private fun PlainLyrics(plain: String) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 48.dp),
+            .padding(start = 28.dp, end = 28.dp, top = 24.dp, bottom = 120.dp),
     ) {
         Text(
             text = plain,

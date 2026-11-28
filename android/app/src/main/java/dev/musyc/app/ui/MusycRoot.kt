@@ -45,7 +45,6 @@ fun MusycRoot(vm: AppViewModel) {
     val search by vm.search.collectAsState()
     val indie by vm.indie.collectAsState()
     val player by PlaybackManager.state.collectAsState()
-    val playerOpen by vm.playerOpen.collectAsState()
     val lyrics by vm.lyrics.collectAsState()
     val lyricsLoading by vm.lyricsLoading.collectAsState()
     val download by vm.download.collectAsState()
@@ -126,22 +125,24 @@ fun MusycRoot(vm: AppViewModel) {
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { vm.openM3u(context, it) } }
 
-    BackHandler(enabled = stack.size > 1 && !playerOpen) {
+    BackHandler(enabled = stack.size > 1) {
         vm.back()
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            if (current !is Screen.Lyrics) {
-                MiniPlayer(
-                    state = player,
-                    onOpen = vm::openPlayer,
-                    onLyrics = vm::openLyrics,
-                    onToggle = { PlaybackManager.toggle() },
-                    onNext = { PlaybackManager.next() },
-                )
-            }
+            MiniPlayer(
+                state = player,
+                onOpen = vm::toggleLyrics,
+                onMode = { PlaybackManager.cycleMode() },
+                onLyrics = vm::toggleLyrics,
+                onToggle = { PlaybackManager.toggle() },
+                onNext = { PlaybackManager.next() },
+                onQueue = { queueOpen = true },
+                onDownload = { vm.downloadSong(context) },
+                onSleep = { sleepOpen = true },
+            )
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -192,11 +193,9 @@ fun MusycRoot(vm: AppViewModel) {
                     )
                 }
                 Screen.Lyrics -> LyricsScreen(
-                    song = player.song,
                     lyric = lyrics,
                     loading = lyricsLoading,
                     positionMs = player.positionMs,
-                    onBack = { vm.back() },
                 )
                 Screen.Recent -> SongsScreen(
                     state = songs,
@@ -210,24 +209,6 @@ fun MusycRoot(vm: AppViewModel) {
         }
     }
 
-    if (playerOpen) {
-        PlayerSheet(
-            state = player,
-            download = download,
-            onDismiss = vm::closePlayer,
-            onMode = { PlaybackManager.cycleMode() },
-            onQueue = { queueOpen = true },
-            onToggle = { PlaybackManager.toggle() },
-            onNext = { PlaybackManager.next() },
-            onPrevious = { PlaybackManager.previous() },
-            onSeek = { PlaybackManager.seekTo(it) },
-            onSeekBy = { PlaybackManager.seekBy(it) },
-            onVolume = { PlaybackManager.setVolume(it) },
-            onLyrics = vm::openLyrics,
-            onDownload = { vm.downloadSong(context) },
-            onSleep = { sleepOpen = true },
-        )
-    }
     if (queueOpen) {
         QueueSheet(
             queue = player.queue,

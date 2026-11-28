@@ -1,80 +1,86 @@
 package dev.musyc.app.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.Lyrics
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay5
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import dev.musyc.app.data.Song
 import dev.musyc.app.play.PlayMode
 import dev.musyc.app.play.PlaybackUiState
 
+/**
+ * 底部播放条：承担全部播放控制，不再弹出单独的播放页。
+ * 点击封面/标题：展开或收起全页歌词；右侧图标：模式 / 歌词 / 播放 / 下一首 / 更多。
+ */
 @Composable
 fun MiniPlayer(
     state: PlaybackUiState,
     onOpen: () -> Unit,
+    onMode: () -> Unit,
     onLyrics: () -> Unit,
     onToggle: () -> Unit,
     onNext: () -> Unit,
+    onQueue: () -> Unit,
+    onDownload: () -> Unit,
+    onSleep: () -> Unit,
 ) {
     val song = state.song ?: return
-    Surface(tonalElevation = 3.dp, shadowElevation = 6.dp) {
+    val progress = if (state.durationMs > 0) {
+        (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Surface(tonalElevation = 3.dp, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.fillMaxWidth()) {
-            MiniProgress(if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f)
+            MiniProgress(progress)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
@@ -83,12 +89,17 @@ fun MiniPlayer(
                         .clickable(onClick = onOpen),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Cover(song.coverUrl, 40)
-                    Spacer(Modifier.size(12.dp))
+                    Cover(song.coverUrl, 42)
+                    Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(song.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            song.artists,
+                            song.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            song.artists.ifBlank { "未知歌手" },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -96,152 +107,89 @@ fun MiniPlayer(
                         )
                     }
                 }
+                IconButton(onClick = onMode) {
+                    Icon(modeIcon(state.mode), contentDescription = "播放模式：${state.mode.label}")
+                }
                 IconButton(onClick = onLyrics) {
                     Icon(Icons.Default.Lyrics, contentDescription = "歌词")
                 }
                 IconButton(onClick = onToggle) {
-                    Icon(if (state.playing) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "播放/暂停")
+                    Icon(
+                        if (state.playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "播放/暂停",
+                    )
                 }
                 IconButton(onClick = onNext) {
                     Icon(Icons.Default.SkipNext, contentDescription = "下一首")
                 }
+                MoreMenu(onQueue = onQueue, onDownload = onDownload, onSleep = onSleep)
             }
+        }
+    }
+}
+
+@Composable
+private fun MoreMenu(onQueue: () -> Unit, onDownload: () -> Unit, onSleep: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = "更多")
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("播放列表") },
+                leadingIcon = { Icon(Icons.Default.QueueMusic, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onQueue()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("下载") },
+                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onDownload()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("定时关闭") },
+                leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onSleep()
+                },
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerSheet(
-    state: PlaybackUiState,
-    download: Pair<String, Float>?,
+fun QueueSheet(
+    queue: List<Song>,
+    index: Int,
     onDismiss: () -> Unit,
-    onMode: () -> Unit,
-    onQueue: () -> Unit,
-    onToggle: () -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    onSeek: (Long) -> Unit,
-    onSeekBy: (Long) -> Unit,
-    onVolume: (Float) -> Unit,
-    onLyrics: () -> Unit,
-    onDownload: () -> Unit,
-    onSleep: () -> Unit,
+    onPick: (Int) -> Unit,
 ) {
-    val song = state.song ?: return
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            AsyncImage(
-                model = song.coverUrl,
-                contentDescription = null,
-                modifier = Modifier.size(240.dp),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(song.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.fillMaxWidth()) {
             Text(
-                listOfNotNull(song.artists.takeIf { it.isNotBlank() }, song.album.takeIf { it.isNotBlank() }).joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                "播放列表 · ${queue.size} 首",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
-            Spacer(Modifier.height(12.dp))
-            var dragging by remember { mutableStateOf(false) }
-            var dragValue by remember { mutableFloatStateOf(0f) }
-            val duration = state.durationMs.coerceAtLeast(1)
-            val value = if (dragging) dragValue else (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
-            Slider(
-                colors = androidx.compose.material3.SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                ),
-                value = value,
-                onValueChange = {
-                    dragging = true
-                    dragValue = it
-                },
-                onValueChangeFinished = {
-                    onSeek((dragValue * duration).toLong())
-                    dragging = false
-                },
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(formatTime(if (dragging) (dragValue * duration).toLong() else state.positionMs), style = MaterialTheme.typography.labelSmall)
-                Text(formatTime(state.durationMs), style = MaterialTheme.typography.labelSmall)
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                IconButton(onClick = onMode) {
-                    Icon(modeIcon(state.mode), contentDescription = "播放模式：${state.mode.label}")
-                }
-                IconButton(onClick = onPrevious) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "上一首")
-                }
-                IconButton(onClick = { onSeekBy(-5_000) }) {
-                    Icon(Icons.Default.Replay5, contentDescription = "快退 5 秒")
-                }
-                FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
-                    Icon(
-                        if (state.playing) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = "播放/暂停",
-                        modifier = Modifier.size(32.dp),
+            LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+                itemsIndexed(queue) { i, song ->
+                    SongRow(
+                        song = song,
+                        index = i,
+                        playing = i == index,
+                        onClick = { onPick(i) },
                     )
-                }
-                IconButton(onClick = onNext) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "下一首")
-                }
-                IconButton(onClick = { onSeekBy(5_000) }) {
-                    Icon(Icons.Default.Forward5, contentDescription = "快进 5 秒")
-                }
-                IconButton(onClick = onQueue) {
-                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "播放列表")
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Default.VolumeDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Slider(
-                    value = state.volume,
-                    onValueChange = onVolume,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    colors = androidx.compose.material3.SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
-                )
-                Icon(Icons.Default.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onLyrics) {
-                    Icon(Icons.Default.Lyrics, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(4.dp))
-                    Text("歌词")
-                }
-                TextButton(onClick = onDownload) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(4.dp))
-                    Text(if (download != null) "${(download.second * 100).toInt()}%" else "下载")
-                }
-                TextButton(onClick = onSleep) {
-                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(4.dp))
-                    Text(state.sleepLeftMs?.let { "定时中" } ?: "定时")
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -269,39 +217,6 @@ fun SleepDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun QueueSheet(
-    queue: List<Song>,
-    index: Int,
-    onDismiss: () -> Unit,
-    onPick: (Int) -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            Text(
-                "播放列表 · ${queue.size} 首",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            )
-            LazyColumn(modifier = Modifier.height(420.dp)) {
-                itemsIndexed(queue) { i, song ->
-                    SongRow(
-                        song = song,
-                        index = i,
-                        playing = i == index,
-                        onClick = { onPick(i) },
-                    )
-                }
-            }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
 }
 
 private fun modeIcon(mode: PlayMode) = when (mode) {
