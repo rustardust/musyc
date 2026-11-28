@@ -24,7 +24,10 @@ pub(super) async fn fetch_audius(source: &Source, http: &reqwest::Client) -> Res
         .cloned()
         .ok_or_else(|| Error::Api("Audius 返回缺少 data 数组".into()))?;
 
-    let songs: Vec<Song> = tracks.iter().filter_map(|track| song_from(source, track)).collect();
+    let songs: Vec<Song> = tracks
+        .iter()
+        .filter_map(|track| song_from(source, track))
+        .collect();
     if songs.is_empty() {
         return Err(Error::Api("Audius 热门榜为空".into()));
     }

@@ -10,6 +10,6 @@ pub mod source_loader;
 
 pub use client::{ApiClient, RawLyric, SongUrl, StreetVoiceDetail};
 pub use dto::IndiePlaylist;
-pub use provider::{load_playlist, PlaylistRequest};
+pub use provider::{PlaylistRequest, load_playlist};
 pub use resolver::{ResolvedSource, Resolver};
 pub use source_loader::load as load_custom_source;

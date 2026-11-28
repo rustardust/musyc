@@ -9,8 +9,8 @@ use musyc_core::model::Song;
 use musyc_core::sources::{Source, SourceKind as Kind};
 use musyc_core::{Error, Result};
 
-use crate::source_loader;
 use crate::ApiClient;
+use crate::source_loader;
 
 /// 一次歌单加载请求。
 pub enum PlaylistRequest<'a> {
@@ -55,7 +55,11 @@ async fn load_builtin(id: &str, api: &ApiClient) -> Result<Vec<Song>> {
         BUILTIN_INDIE => {
             // 雀乐：目录里最新一期的歌曲，避免把十期扁平成超长队列。
             let catalog = api.indie_catalog().await?;
-            Ok(catalog.into_iter().next().map(|p| p.songs).unwrap_or_default())
+            Ok(catalog
+                .into_iter()
+                .next()
+                .map(|p| p.songs)
+                .unwrap_or_default())
         }
         other => Err(Error::Api(format!("未知内置来源：{other}"))),
     }
