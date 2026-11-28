@@ -48,12 +48,12 @@ pub const BUILTIN_SOURCES: [BuiltinSource; 3] = [
     BuiltinSource {
         id: BUILTIN_STREETVOICE,
         name: "街声推荐",
-        desc: "街声推荐 30 首 · 本机 API",
+        desc: "街声推荐 · 本机 API",
     },
     BuiltinSource {
         id: BUILTIN_INDIE,
         name: "雀乐推荐",
-        desc: "雀乐最新 10 期",
+        desc: "雀乐最新 20 期",
     },
 ];
 

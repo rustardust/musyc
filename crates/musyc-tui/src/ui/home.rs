@@ -15,7 +15,7 @@ pub fn render_too_small(frame: &mut Frame, area: Rect, _theme: &Theme) {
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let message = truncate_width("终端太小，请放大窗口或按 l 隐藏歌词", area.width as usize);
+    let message = truncate_width("终端太小，请放大窗口", area.width as usize);
     let line = Line::from(Span::raw(message)).alignment(Alignment::Center);
     frame.render_widget(
         Paragraph::new(line),

@@ -6,12 +6,12 @@ impl ApiClient {
         self.streetvoice_list("realtime").await
     }
 
-    /// 街声推荐前 30 首。
+    /// 街声推荐全部（服务端翻页取全）。
     pub async fn streetvoice_recommend(&self) -> Result<Vec<Song>> {
         self.streetvoice_list("recommend").await
     }
 
-    /// 街声分类（如 7 = Alternative）前 30 首。
+    /// 街声分类（如 7 = Alternative）全部（服务端翻页取全）。
     pub async fn streetvoice_cat(&self, cat: &str) -> Result<Vec<Song>> {
         let v = self
             .get_local(&format!("musyc/catalog/streetvoice/cat/{cat}"), vec![])

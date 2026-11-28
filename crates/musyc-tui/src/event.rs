@@ -62,7 +62,7 @@ pub enum Event {
         title: String,
         result: Result<Vec<Song>, String>,
     },
-    /// 雀乐最新 10 期（含歌曲）。
+    /// 雀乐最新 20 期（含歌曲）。
     IndieCatalog {
         seq: u64,
         result: Result<Vec<IndiePlaylist>, String>,
