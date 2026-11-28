@@ -63,7 +63,7 @@
 
 功能：首页三在线 + 本地音乐 + 最近播放、单曲与歌单搜索、全页歌词（当前行居中）、顺序 / 列表循环 / 单曲 / 随机四种播放模式、播放队列、下载到 `Download/musyc`、定时关闭。
 
-- **安装包**：从 [Releases](https://github.com/rustardust/musyc/releases/latest) 下载 `musyc-0.4.0.apk`，在手机上允许「安装未知来源应用」后安装。
+- **安装包**：从 [Releases](https://github.com/rustardust/musyc/releases/latest) 下载 `musyc-0.4.1.apk`，在手机上允许「安装未知来源应用」后安装。
 - **自行构建**：`cd android && ./gradlew :app:assembleDebug`，需要 JDK 21 和 Android SDK 35。
 
 ## 安装
