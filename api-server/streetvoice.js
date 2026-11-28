@@ -2,8 +2,8 @@
 
 // 街声（streetvoice.cn）目录与播放：
 //   GET  /musyc/catalog/streetvoice/realtime   即时榜（前端已不使用）
-//   GET  /musyc/catalog/streetvoice/recommend  街声推荐（翻页取全）
-//   GET  /musyc/catalog/streetvoice/cat/:cat   街声分类（browse/<cat>/recommend/latest/，翻页取全）
+//   GET  /musyc/catalog/streetvoice/recommend  街声推荐 50 首
+//   GET  /musyc/catalog/streetvoice/cat/:cat   街声分类（browse/<cat>/recommend/latest/）50 首
 //   GET  /musyc/catalog/streetvoice/:id        单曲详情（补时长/专辑/歌词）
 //   GET  /musyc/stream/streetvoice/:id         HLS -> MP3，供 Rust 端缓存播放
 //
@@ -28,8 +28,7 @@ const recommendPageUrl = (page) => catPageUrl(0, page);
 const RECOMMEND_URL = recommendPageUrl(0);
 const LIST_TTL_MS = 10 * 60 * 1000;
 const DETAIL_TTL_MS = 30 * 60 * 1000;
-const LIST_LIMIT = Number.POSITIVE_INFINITY; // 0.3.2 起不再限制 30 首
-const MAX_PAGES = 50; // 翻页安全上限（约 1000 首）
+const LIST_LIMIT = 50;
 const STREAM_DIR = path.join(os.tmpdir(), 'musyc-streetvoice');
 
 const LIST_SOURCES = {
@@ -128,8 +127,8 @@ async function buildList(kind) {
   if (!source) throw new Error(`未知街声列表：${kind}`);
   // 站点改用 htmx：不带 HX-Request 时只返回外壳，列表在 pjax 片段里。
   // 推荐页按页码分页，每页 20 首；跨页可能有重复，一边翻页一边去重，
-  // 直到页面不再返回作品（或触到安全上限）。
-  const maxPages = source.pageUrl ? MAX_PAGES : 1;
+  // 直到凑满 50 首或页面不再返回作品。
+  const maxPages = source.pageUrl ? 10 : 1;
   const songs = [];
   const seen = new Set();
   for (let page = 0; page < maxPages && songs.length < LIST_LIMIT; page++) {
