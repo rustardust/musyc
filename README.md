@@ -63,7 +63,7 @@
 
 功能：首页三个可换绑在线槽位（网易原创 / 街声 / Audius / FMA / Jamendo 等）+ 雀乐按期 + 本地音乐 + 最近播放；在线槽位可换源并导入自定义 `.toml`；单曲与歌单搜索、打开链接 / ID / 本地文件 / M3U；全页歌词（点击播放条展开、再点收起，当前行居中）；顺序 / 列表循环 / 单曲 / 随机四种播放模式；播放队列；本地标签补全（网易匹配后写入 ID3v2.3 副本，含封面与歌词，原文件不动）；最近播放可逐条移除；下载到 `Download/musyc`；定时关闭；系统通知栏媒体控制。播放模式、播放 / 暂停、下一首与菜单（播放列表、下载、定时关闭）集中在底部播放条；点击播放条本身展开/收起歌词。
 
-- **安装包**：从 [Releases](https://github.com/rustardust/musyc/releases/latest) 下载 `musyc-0.4.4.apk`，在手机上允许「安装未知来源应用」后安装。
+- **安装包**：从 [Releases](https://github.com/rustardust/musyc/releases/latest) 下载 `musyc-0.4.5.apk`，在手机上允许「安装未知来源应用」后安装。
 - **自行构建**：`cd android && ./gradlew :app:assembleDebug`，需要 JDK 21 和 Android SDK 35。
 
 ## 安装

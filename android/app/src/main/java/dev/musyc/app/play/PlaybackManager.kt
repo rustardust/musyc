@@ -6,6 +6,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import dev.musyc.app.data.Repository
@@ -53,8 +54,10 @@ object PlaybackManager {
     private val _state = MutableStateFlow(PlaybackUiState())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
-    lateinit var player: ExoPlayer
+    /** 对外暴露的播放器：拦截 seekToPrevious/Next，避免系统媒体控制只回到当前歌曲开头。 */
+    lateinit var player: Player
         private set
+    private lateinit var exo: ExoPlayer
 
     private var loadJob: Job? = null
     private var started = false
@@ -69,7 +72,7 @@ object PlaybackManager {
             ?.let { name -> PlayMode.entries.firstOrNull { it.name == name } }
             ?: PlayMode.ListLoop
         _state.update { it.copy(mode = savedMode, volume = prefs.getFloat("volume", 1f)) }
-        player = ExoPlayer.Builder(context.applicationContext).build().apply {
+        exo = ExoPlayer.Builder(context.applicationContext).build().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -107,6 +110,24 @@ object PlaybackManager {
                     PlaybackManager.next(auto = true)
                 }
             })
+        }
+        player = object : ForwardingPlayer(exo) {
+            // 队尾 / 队首也允许上一首、下一首：ExoPlayer 在 repeat=OFF 时会隐藏边界命令，
+            // 系统媒体控制因此只剩“回到开头”。这里强制保留命令，再交给自己的循环逻辑。
+            override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands()
+                .buildUpon()
+                .addAll(
+                    Player.COMMAND_SEEK_TO_NEXT,
+                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                    Player.COMMAND_SEEK_TO_PREVIOUS,
+                    Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                )
+                .build()
+
+            override fun seekToPrevious() = PlaybackManager.previous()
+            override fun seekToNext() = PlaybackManager.next()
+            override fun seekToPreviousMediaItem() = PlaybackManager.previous()
+            override fun seekToNextMediaItem() = PlaybackManager.next()
         }
         scope.launch {
             while (true) {
