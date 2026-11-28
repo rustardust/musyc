@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/rustardust/musyc)](https://github.com/rustardust/musyc/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
 
-> 基于歌单的音乐盒。
+> 歌单驱动的音乐盒。
 
 ## 设计理念
 
