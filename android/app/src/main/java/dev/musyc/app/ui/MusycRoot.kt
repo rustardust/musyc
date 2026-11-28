@@ -34,7 +34,6 @@ fun MusycRoot(vm: AppViewModel) {
     val player by PlaybackManager.state.collectAsState()
     val playerOpen by vm.playerOpen.collectAsState()
     val lyrics by vm.lyrics.collectAsState()
-    val lyricsOpen by vm.lyricsOpen.collectAsState()
     val lyricsLoading by vm.lyricsLoading.collectAsState()
     val download by vm.download.collectAsState()
 
@@ -43,6 +42,7 @@ fun MusycRoot(vm: AppViewModel) {
     val scope = rememberCoroutineScope()
     var scanning by remember { mutableStateOf(false) }
     var sleepOpen by remember { mutableStateOf(false) }
+    var queueOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         vm.messages.collect { snackbar.showSnackbar(it) }
@@ -82,12 +82,15 @@ fun MusycRoot(vm: AppViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            MiniPlayer(
-                state = player,
-                onOpen = vm::openPlayer,
-                onToggle = { PlaybackManager.toggle() },
-                onNext = { PlaybackManager.next() },
-            )
+            if (current !is Screen.Lyrics) {
+                MiniPlayer(
+                    state = player,
+                    onOpen = vm::openPlayer,
+                    onLyrics = vm::openLyrics,
+                    onToggle = { PlaybackManager.toggle() },
+                    onNext = { PlaybackManager.next() },
+                )
+            }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -104,6 +107,7 @@ fun MusycRoot(vm: AppViewModel) {
                     onBack = { vm.back() },
                     onQuery = vm::search,
                     onPlay = { index -> vm.play(search.results, index) },
+                    onOpenPlaylist = { index -> search.playlists.getOrNull(index)?.let(vm::openPlaylist) },
                 )
                 Screen.Indie -> IndieScreen(
                     state = indie,
@@ -121,6 +125,13 @@ fun MusycRoot(vm: AppViewModel) {
                     onBack = { vm.back() },
                     onPlay = { index -> vm.play(songs.songs, index) },
                 )
+                Screen.Lyrics -> LyricsScreen(
+                    song = player.song,
+                    lyric = lyrics,
+                    loading = lyricsLoading,
+                    positionMs = player.positionMs,
+                    onBack = { vm.back() },
+                )
                 Screen.Recent -> SongsScreen(
                     state = songs,
                     playingKey = player.song?.key,
@@ -136,6 +147,8 @@ fun MusycRoot(vm: AppViewModel) {
             state = player,
             download = download,
             onDismiss = vm::closePlayer,
+            onMode = { PlaybackManager.cycleMode() },
+            onQueue = { queueOpen = true },
             onToggle = { PlaybackManager.toggle() },
             onNext = { PlaybackManager.next() },
             onPrevious = { PlaybackManager.previous() },
@@ -145,12 +158,15 @@ fun MusycRoot(vm: AppViewModel) {
             onSleep = { sleepOpen = true },
         )
     }
-    if (lyricsOpen) {
-        LyricsSheet(
-            lyric = lyrics,
-            loading = lyricsLoading,
-            positionMs = player.positionMs,
-            onDismiss = vm::closeLyrics,
+    if (queueOpen) {
+        QueueSheet(
+            queue = player.queue,
+            index = player.index,
+            onDismiss = { queueOpen = false },
+            onPick = { index ->
+                PlaybackManager.play(player.queue, index)
+                queueOpen = false
+            },
         )
     }
     if (sleepOpen) {

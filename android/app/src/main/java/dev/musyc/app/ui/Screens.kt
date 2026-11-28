@@ -89,6 +89,7 @@ fun SearchScreen(
     onBack: () -> Unit,
     onQuery: (String) -> Unit,
     onPlay: (Int) -> Unit,
+    onOpenPlaylist: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var text by remember { mutableStateOf(state.query) }
@@ -119,13 +120,47 @@ fun SearchScreen(
             keyboardActions = KeyboardActions(onSearch = { onQuery(text.trim()) }),
         )
         Spacer(Modifier.padding(top = 8.dp))
+        val empty = state.results.isEmpty() && state.playlists.isEmpty()
         when {
-            state.loading -> Loading()
-            state.error != null -> EmptyState(state.error)
-            state.results.isEmpty() -> EmptyState("输入关键词，回车搜索")
+            state.loading && empty -> Loading()
+            state.error != null && empty -> EmptyState(state.error)
+            empty -> EmptyState("输入关键词，回车搜索")
             else -> LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)) {
-                itemsIndexed(state.results) { index, song ->
-                    SongRow(song, index, playing = song.key == playingKey) { onPlay(index) }
+                if (state.results.isNotEmpty()) {
+                    item(key = "songs-header") { SectionHeader("单曲") }
+                    itemsIndexed(state.results) { index, song ->
+                        SongRow(song, index, playing = song.key == playingKey) { onPlay(index) }
+                    }
+                }
+                if (state.playlists.isNotEmpty()) {
+                    item(key = "playlists-header") { SectionHeader("歌单") }
+                    itemsIndexed(state.playlists) { index, playlist ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenPlaylist(index) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Cover(playlist.coverUrl, 56)
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    playlist.title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    playlist.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

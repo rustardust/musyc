@@ -28,6 +28,7 @@ sealed interface Screen {
     data object Indie : Screen
     data object Local : Screen
     data object Recent : Screen
+    data object Lyrics : Screen
     data class Songs(
         val title: String,
         val subtitle: String,
@@ -35,7 +36,7 @@ sealed interface Screen {
     ) : Screen
 }
 
-enum class SongsSource { NETEASE, STREETVOICE, INDIE_VOL, RECENT, LOCAL }
+enum class SongsSource { NETEASE, NETEASE_PLAYLIST, STREETVOICE, INDIE_VOL, RECENT, LOCAL }
 
 data class HomeSlot(
     val source: SongsSource,
@@ -59,6 +60,7 @@ data class SearchUiState(
     val query: String = "",
     val loading: Boolean = false,
     val results: List<Song> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),
     val error: String? = null,
 )
 
@@ -99,9 +101,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _lyrics = MutableStateFlow<Lyric?>(null)
     val lyrics = _lyrics.asStateFlow()
-
-    private val _lyricsOpen = MutableStateFlow(false)
-    val lyricsOpen = _lyricsOpen.asStateFlow()
 
     private val _lyricsLoading = MutableStateFlow(false)
     val lyricsLoading = _lyricsLoading.asStateFlow()
@@ -197,6 +196,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     .onSuccess { _songs.update { s -> s.copy(songs = it.songs, loading = false) } }
                     .onFailure { e -> _songs.update { s -> s.copy(loading = false, error = friendly(e)) } }
             }
+            SongsSource.NETEASE_PLAYLIST -> Unit
             SongsSource.INDIE_VOL -> {
                 push(Screen.Indie)
                 if (_indie.value.playlists.isEmpty() && !_indie.value.loading) loadIndie()
@@ -245,9 +245,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch {
             _search.value = _search.value.copy(loading = true, error = null)
-            runCatching { dev.musyc.app.data.NeteaseApi.searchSongs(query) }
-                .onSuccess { _search.value = SearchUiState(query = query, results = it) }
-                .onFailure { e -> _search.value = SearchUiState(query = query, error = friendly(e)) }
+            val songs = async { runCatching { dev.musyc.app.data.NeteaseApi.searchSongs(query) } }
+            val playlists = async { runCatching { dev.musyc.app.data.NeteaseApi.searchPlaylists(query) } }
+            val songResult = songs.await()
+            val listResult = playlists.await()
+            val error = songResult.exceptionOrNull() ?: listResult.exceptionOrNull()
+            _search.value = SearchUiState(
+                query = query,
+                results = songResult.getOrDefault(emptyList()),
+                playlists = listResult.getOrDefault(emptyList()),
+                error = error?.let(::friendly),
+            )
+        }
+    }
+
+    /** 打开搜索到的网易云歌单，拉取全部曲目后进入歌曲页。 */
+    fun openPlaylist(playlist: Playlist) {
+        _songs.value = SongsUiState(title = playlist.title, subtitle = playlist.subtitle, loading = true)
+        push(Screen.Songs(playlist.title, playlist.subtitle, SongsSource.NETEASE_PLAYLIST))
+        viewModelScope.launch {
+            runCatching { dev.musyc.app.data.NeteaseApi.playlistSongs(playlist.id) }
+                .onSuccess { _songs.update { s -> s.copy(songs = it, loading = false) } }
+                .onFailure { e -> _songs.update { s -> s.copy(loading = false, error = friendly(e)) } }
         }
     }
 
@@ -277,18 +296,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _playerOpen.value = false
     }
 
+    private var lyricsJob: kotlinx.coroutines.Job? = null
+
+    /** 打开全页歌词；重复点击同一页时仅刷新，不再叠栈。 */
     fun openLyrics() {
-        _lyricsOpen.value = true
         val song = PlaybackManager.state.value.song ?: return
-        viewModelScope.launch {
-            _lyricsLoading.value = true
+        _playerOpen.value = false
+        if (_stack.value.lastOrNull() !is Screen.Lyrics) push(Screen.Lyrics)
+        _lyrics.value = null
+        _lyricsLoading.value = true
+        lyricsJob?.cancel()
+        lyricsJob = viewModelScope.launch {
             _lyrics.value = runCatching { Repository.lyric(song) }.getOrNull()
             _lyricsLoading.value = false
         }
     }
 
     fun closeLyrics() {
-        _lyricsOpen.value = false
+        if (_stack.value.lastOrNull() is Screen.Lyrics) back()
     }
 
     fun downloadSong(context: Context) {

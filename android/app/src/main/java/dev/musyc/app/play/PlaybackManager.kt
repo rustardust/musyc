@@ -23,6 +23,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+enum class PlayMode(val label: String) {
+    Sequential("顺序"),
+    ListLoop("列表循环"),
+    Single("单曲"),
+    Shuffle("随机"),
+}
+
 data class PlaybackUiState(
     val queue: List<Song> = emptyList(),
     val index: Int = -1,
@@ -33,6 +40,7 @@ data class PlaybackUiState(
     val durationMs: Long = 0,
     val sleepLeftMs: Long? = null,
     val message: String? = null,
+    val mode: PlayMode = PlayMode.ListLoop,
 )
 
 /**
@@ -49,11 +57,17 @@ object PlaybackManager {
 
     private var loadJob: Job? = null
     private var started = false
+    private lateinit var prefs: android.content.SharedPreferences
     private var sleepDeadline: Long? = null
 
     fun init(context: Context) {
         if (started) return
         started = true
+        prefs = context.getSharedPreferences("musyc-play", Context.MODE_PRIVATE)
+        val savedMode = prefs.getString("mode", null)
+            ?.let { name -> PlayMode.entries.firstOrNull { it.name == name } }
+            ?: PlayMode.ListLoop
+        _state.update { it.copy(mode = savedMode) }
         player = ExoPlayer.Builder(context.applicationContext).build().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
@@ -77,7 +91,7 @@ object PlaybackManager {
                                 )
                             }
                         }
-                        Player.STATE_ENDED -> PlaybackManager.next()
+                        Player.STATE_ENDED -> PlaybackManager.next(auto = true)
                         else -> Unit
                     }
                 }
@@ -88,7 +102,7 @@ object PlaybackManager {
 
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                     _state.update { it.copy(message = "播放失败") }
-                    PlaybackManager.next()
+                    PlaybackManager.next(auto = true)
                 }
             })
         }
@@ -132,12 +146,37 @@ object PlaybackManager {
         }
     }
 
-    fun next() {
+    /** auto=true 表示由播放结束触发：单曲重播、顺序模式播完即停。 */
+    fun next(auto: Boolean = false) {
         val st = _state.value
         if (st.queue.isEmpty()) return
-        val next = (st.index + 1) % st.queue.size
-        _state.update { it.copy(index = next, song = st.queue[next]) }
-        load(next)
+        val size = st.queue.size
+        val target = when (st.mode) {
+            PlayMode.Single -> if (auto) st.index else (st.index + 1) % size
+            PlayMode.Shuffle -> if (size == 1) 0 else {
+                var n = st.index
+                while (n == st.index) n = kotlin.random.Random.nextInt(size)
+                n
+            }
+            PlayMode.Sequential -> {
+                if (auto && st.index == size - 1) {
+                    player.pause()
+                    _state.update { it.copy(playing = false, message = "队列结束") }
+                    return
+                }
+                (st.index + 1) % size
+            }
+            PlayMode.ListLoop -> (st.index + 1) % size
+        }
+        _state.update { it.copy(index = target, song = st.queue[target]) }
+        load(target)
+    }
+
+    fun cycleMode() {
+        val st = _state.value
+        val mode = PlayMode.entries[(st.mode.ordinal + 1) % PlayMode.entries.size]
+        prefs.edit().putString("mode", mode.name).apply()
+        _state.update { it.copy(mode = mode, message = mode.label) }
     }
 
     fun previous() {
@@ -176,13 +215,14 @@ object PlaybackManager {
             var tries = 0
             var cursor = index
             var current = song
-            while (tries < queue.size) {
+            // 与 TUI 一致：连续失败超过 8 首就停下，避免整张 VIP 歌单被逐首跳过。
+            while (tries < queue.size.coerceAtMost(8)) {
                 val resolved = withContext(Dispatchers.IO) { Repository.resolve(current) }
                 val playable = resolved != null &&
                     if (current.source == dev.musyc.app.data.Source.LOCAL) {
                         !resolved.localUri.isNullOrBlank()
                     } else {
-                        !resolved.playUrl.isNullOrBlank()
+                        resolved.playUrl?.startsWith("http") == true
                     }
                 if (playable) {
                     resolved ?: continue

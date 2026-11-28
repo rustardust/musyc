@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Pause
@@ -21,6 +23,9 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -46,13 +51,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import dev.musyc.app.data.Lyric
+import dev.musyc.app.data.Song
+import dev.musyc.app.play.PlayMode
 import dev.musyc.app.play.PlaybackUiState
 
 @Composable
 fun MiniPlayer(
     state: PlaybackUiState,
     onOpen: () -> Unit,
+    onLyrics: () -> Unit,
     onToggle: () -> Unit,
     onNext: () -> Unit,
 ) {
@@ -85,8 +92,8 @@ fun MiniPlayer(
                         )
                     }
                 }
-                IconButton(onClick = onOpen) {
-                    Icon(Icons.Default.Lyrics, contentDescription = "播放页")
+                IconButton(onClick = onLyrics) {
+                    Icon(Icons.Default.Lyrics, contentDescription = "歌词")
                 }
                 IconButton(onClick = onToggle) {
                     Icon(if (state.playing) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "播放/暂停")
@@ -105,6 +112,8 @@ fun PlayerSheet(
     state: PlaybackUiState,
     download: Pair<String, Float>?,
     onDismiss: () -> Unit,
+    onMode: () -> Unit,
+    onQueue: () -> Unit,
     onToggle: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
@@ -165,8 +174,11 @@ fun PlayerSheet(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                IconButton(onClick = onMode) {
+                    Icon(modeIcon(state.mode), contentDescription = "播放模式：${state.mode.label}")
+                }
                 IconButton(onClick = onPrevious) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = "上一首")
                 }
@@ -179,6 +191,9 @@ fun PlayerSheet(
                 }
                 IconButton(onClick = onNext) {
                     Icon(Icons.Default.SkipNext, contentDescription = "下一首")
+                }
+                IconButton(onClick = onQueue) {
+                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "播放列表")
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -228,71 +243,40 @@ fun SleepDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LyricsSheet(
-    lyric: Lyric?,
-    loading: Boolean,
-    positionMs: Long,
+fun QueueSheet(
+    queue: List<Song>,
+    index: Int,
     onDismiss: () -> Unit,
+    onPick: (Int) -> Unit,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        if (loading) {
-            Box(Modifier.fillMaxWidth().height(240.dp), contentAlignment = Alignment.Center) {
-                Text("载入歌词…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            return@ModalBottomSheet
-        }
-        val lines = lyric?.lines.orEmpty()
-        if (lines.isEmpty()) {
-            val plain = lyric?.plain.orEmpty()
-            if (plain.isNotBlank()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(480.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        Text(
-                            text = plain,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+        Column(Modifier.fillMaxWidth()) {
+            Text(
+                "播放列表 · ${queue.size} 首",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+            LazyColumn(modifier = Modifier.height(420.dp)) {
+                itemsIndexed(queue) { i, song ->
+                    SongRow(
+                        song = song,
+                        index = i,
+                        playing = i == index,
+                        onClick = { onPick(i) },
+                    )
                 }
-                return@ModalBottomSheet
             }
-            Box(Modifier.fillMaxWidth().height(240.dp), contentAlignment = Alignment.Center) {
-                Text("暂无歌词", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            return@ModalBottomSheet
-        }
-        val listState = rememberLazyListState()
-        val current = lines.indexOfLast { it.atMs <= positionMs }.coerceAtLeast(0)
-        val centerOffset = with(androidx.compose.ui.platform.LocalDensity.current) { 180.dp.roundToPx() }
-        LaunchedEffect(current) {
-            listState.animateScrollToItem(current.coerceAtLeast(0), -centerOffset)
-        }
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(480.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 120.dp, horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            itemsIndexed(lines) { index, line ->
-                Text(
-                    text = line.text,
-                    style = if (index == current) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
-                    color = if (index == current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+private fun modeIcon(mode: PlayMode) = when (mode) {
+    PlayMode.Sequential -> Icons.AutoMirrored.Filled.PlaylistPlay
+    PlayMode.ListLoop -> Icons.Default.Repeat
+    PlayMode.Single -> Icons.Default.RepeatOne
+    PlayMode.Shuffle -> Icons.Default.Shuffle
 }

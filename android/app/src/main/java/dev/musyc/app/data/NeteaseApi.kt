@@ -66,6 +66,53 @@ object NeteaseApi {
         (0 until songs.length()).mapNotNull { songFrom(songs.optJSONObject(it)) }
     }
 
+    suspend fun searchPlaylists(keyword: String, limit: Int = 20): List<Playlist> = withContext(Dispatchers.IO) {
+        val url = BASE + "/api/cloudsearch/pc?s=" + java.net.URLEncoder.encode(keyword, "UTF-8") +
+            "&type=1000&limit=" + limit + "&offset=0"
+        val json = get(url)
+        val arr = json.optJSONObject("result")?.optJSONArray("playlists") ?: JSONArray()
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            val id = o.optString("id").ifBlank { return@mapNotNull null }
+            val name = o.optString("name").ifBlank { return@mapNotNull null }
+            val count = o.optInt("trackCount")
+            val creator = o.optJSONObject("creator")?.optString("nickname").orEmpty()
+            Playlist(
+                id = id,
+                title = name,
+                subtitle = listOfNotNull("$count 首".takeIf { count > 0 }, creator.takeIf { it.isNotBlank() })
+                    .joinToString(" · "),
+                coverUrl = o.optString("coverImgUrl").takeIf { it.startsWith("http") },
+                songs = emptyList(),
+            )
+        }
+    }
+
+    /** 歌单详情只回前 10 首和完整 trackIds，再按 id 批量补全。 */
+    suspend fun playlistSongs(id: String): List<Song> = withContext(Dispatchers.IO) {
+        val detail = get(BASE + "/api/v6/playlist/detail?id=" + id)
+        val playlist = detail.optJSONObject("playlist") ?: return@withContext emptyList()
+        val ids = playlist.optJSONArray("trackIds")?.let { arr ->
+            (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.optString("id")?.takeIf(String::isNotBlank) }
+        }.orEmpty()
+        if (ids.isNotEmpty()) return@withContext songDetailPublic(ids)
+        val tracks = playlist.optJSONArray("tracks") ?: return@withContext emptyList()
+        (0 until tracks.length()).mapNotNull { songFrom(tracks.optJSONObject(it)) }
+    }
+
+    private suspend fun songDetailPublic(ids: List<String>): List<Song> {
+        val out = mutableListOf<Song>()
+        ids.chunked(100).forEach { chunk ->
+            val url = BASE + "/api/song/detail?ids=[" + chunk.joinToString(",") + "]"
+            val json = get(url)
+            val songs = json.optJSONArray("songs") ?: JSONArray()
+            for (i in 0 until songs.length()) {
+                songFrom(songs.optJSONObject(i))?.let(out::add)
+            }
+        }
+        return out
+    }
+
     suspend fun songDetail(ids: List<String>): List<Song> = withContext(Dispatchers.IO) {
         if (ids.isEmpty()) return@withContext emptyList()
         val out = mutableListOf<Song>()
@@ -89,8 +136,8 @@ object NeteaseApi {
             .put("csrf_token", "")
         val first = post("/weapi/song/enhance/player/url/v1", data)
             .optJSONArray("data")?.optJSONObject(0)
-        val url = first?.optString("url").orEmpty()
-        url.ifBlank { null }
+        // 无版权时 JSON 里是 null，optString 会得到字符串 "null"，不能当可播放地址。
+        first?.optString("url").orEmpty().takeIf { it.startsWith("http") }
     }
 
     suspend fun lyric(id: String): Lyric = withContext(Dispatchers.IO) {
@@ -111,10 +158,10 @@ object NeteaseApi {
         if (o == null) return null
         val id = o.optString("id").ifBlank { return null }
         val name = o.optString("name").ifBlank { return null }
-        val artists = o.optJSONArray("ar")?.let { arr ->
+        val artists = (o.optJSONArray("ar") ?: o.optJSONArray("artists"))?.let { arr ->
             (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.optString("name")?.takeIf(String::isNotBlank) }
         }.orEmpty()
-        val album = o.optJSONObject("al")
+        val album = o.optJSONObject("al") ?: o.optJSONObject("album")
         val cover = album?.optString("picUrl")?.takeIf { it.startsWith("http") }
         return Song(
             id = id,
